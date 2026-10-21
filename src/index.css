@@ -1,0 +1,53 @@
+@import 'tailwindcss';
+
+@theme {
+  --color-marca-50: #ecfdf3;
+  --color-marca-100: #d1fae1;
+  --color-marca-600: #11804a;
+  --color-marca-700: #0f6b3e;
+  --color-marca-800: #0f5132;
+  --color-marca-900: #0b3d26;
+  --font-sans: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+}
+
+@layer base {
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
+  body {
+    @apply bg-slate-50 text-slate-900 antialiased;
+  }
+  :focus-visible {
+    @apply outline-3 outline-offset-2 outline-amber-500;
+  }
+  h1 {
+    @apply text-2xl font-bold text-slate-900 sm:text-3xl;
+  }
+  h2 {
+    @apply text-lg font-semibold text-slate-900;
+  }
+  h3 {
+    @apply text-base font-semibold text-slate-900;
+  }
+}
+
+@layer components {
+  .campo-input {
+    @apply block w-full rounded-md border border-slate-400 bg-white px-3 py-2 text-base text-slate-900 shadow-sm placeholder:text-slate-500 focus:border-marca-700 focus:ring-2 focus:ring-marca-700/30 focus:outline-none disabled:bg-slate-100 disabled:text-slate-600 aria-[invalid=true]:border-red-700;
+  }
+  .tabela {
+    @apply w-full border-collapse text-left text-sm;
+  }
+  .tabela th {
+    @apply border-b-2 border-slate-300 bg-slate-100 px-3 py-2 font-semibold text-slate-800;
+  }
+  .tabela td {
+    @apply border-b border-slate-200 px-3 py-2 align-top;
+  }
+}
+
+@media print {
+  .nao-imprimir {
+    display: none !important;
+  }
+}
