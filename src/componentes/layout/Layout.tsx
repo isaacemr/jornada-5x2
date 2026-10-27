@@ -3,6 +3,7 @@ import { NavLink, useLocation } from 'react-router-dom';
 import { REGRAS } from '../../config/regras-ec141';
 import { AVISO_LEGAL, AVISO_PRIVACIDADE } from '../../config/textos-juridicos';
 import { formatarData } from '../../dominio/tempo';
+import logoObjetiva from '../../assets/logo-objetiva.png';
 
 export const MENU = [
   { para: '/', texto: 'Painel', numero: '0' },
@@ -97,15 +98,21 @@ export function Layout({ children }: { children: ReactNode }) {
               Jornada 5x2 <span className="hidden font-normal sm:inline">— Adequação à EC 141/2026</span>
             </span>
           </NavLink>
-          <button
-            type="button"
-            className="min-h-11 rounded-md border border-white/60 px-3 text-sm lg:hidden"
-            aria-expanded={menuAberto}
-            aria-controls="menu-movel"
-            onClick={() => setMenuAberto((v) => !v)}
-          >
-            {menuAberto ? 'Fechar menu' : 'Menu'}
-          </button>
+          <div className="flex shrink-0 items-center gap-3">
+            {/* Fundo branco: o "C" verde da logo some sobre a barra verde. */}
+            <span className="rounded-md bg-white px-2 py-1">
+              <img src={logoObjetiva} alt="Objetiva Contábil" className="h-5 w-auto sm:h-8" />
+            </span>
+            <button
+              type="button"
+              className="min-h-11 rounded-md border border-white/60 px-3 text-sm lg:hidden"
+              aria-expanded={menuAberto}
+              aria-controls="menu-movel"
+              onClick={() => setMenuAberto((v) => !v)}
+            >
+              {menuAberto ? 'Fechar menu' : 'Menu'}
+            </button>
+          </div>
         </div>
       </header>
 
