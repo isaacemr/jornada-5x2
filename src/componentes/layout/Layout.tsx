@@ -88,10 +88,10 @@ export function Layout({ children }: { children: ReactNode }) {
       >
         Pular para o conteúdo
       </a>
-      <header className="nao-imprimir sticky top-0 z-30 bg-marca-800 text-white shadow">
+      <header className="nao-imprimir sticky top-0 z-30 border-b border-slate-200 bg-white text-marca-800 shadow-sm">
         <div className="mx-auto flex max-w-7xl items-center justify-between gap-3 px-4 py-3">
           <NavLink to="/" className="flex items-center gap-2 font-bold">
-            <span aria-hidden="true" className="rounded bg-white px-1.5 py-0.5 text-sm text-marca-800">
+            <span aria-hidden="true" className="rounded bg-marca-800 px-1.5 py-0.5 text-sm text-white">
               5x2
             </span>
             <span>
@@ -99,13 +99,10 @@ export function Layout({ children }: { children: ReactNode }) {
             </span>
           </NavLink>
           <div className="flex shrink-0 items-center gap-3">
-            {/* Fundo branco: o "C" verde da logo some sobre a barra verde. */}
-            <span className="rounded-md bg-white px-2 py-1">
-              <img src={logoObjetiva} alt="Objetiva Contábil" className="h-5 w-auto sm:h-8" />
-            </span>
+            <img src={logoObjetiva} alt="Objetiva Contábil" className="h-6 w-auto sm:h-9" />
             <button
               type="button"
-              className="min-h-11 rounded-md border border-white/60 px-3 text-sm lg:hidden"
+              className="min-h-11 rounded-md border border-marca-800 px-3 text-sm font-medium hover:bg-marca-50 lg:hidden"
               aria-expanded={menuAberto}
               aria-controls="menu-movel"
               onClick={() => setMenuAberto((v) => !v)}
