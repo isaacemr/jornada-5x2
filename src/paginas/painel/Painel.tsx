@@ -199,10 +199,8 @@ export default function Painel() {
           {[
             ['/funcionarios', '1. Cadastre ou importe os funcionários e veja o diagnóstico'],
             ['/jornada', '2. Simule a nova distribuição das horas (42 h e 40 h)'],
-            ['/escala', '3. Monte a nova escala e confira a cobertura do horário'],
-            ['/acordos', '4. Revise a convenção e os acordos coletivos'],
-            ['/contratos', '5. Gere os aditivos e atualize o ponto e o eSocial'],
-            ['/plano', '6. Acompanhe o plano de ação até cada prazo'],
+            ['/escala', '3. Veja as opções de horário e monte a nova escala'],
+            ['/plano', '4. Acompanhe o plano de ação até cada prazo'],
           ].map(([para, texto]) => (
             <li key={para}>
               <Link to={para} className="flex min-h-11 items-center rounded-md border border-slate-200 px-3 py-2 hover:bg-slate-50 hover:underline">

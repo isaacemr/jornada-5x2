@@ -14,5 +14,7 @@ export default defineConfig({
     globals: true,
     setupFiles: ['./src/test/setup.ts'],
     include: ['src/**/*.test.{ts,tsx}'],
+    // Testes de XLSX/PDF carregam bibliotecas grandes; na primeira execução podem passar de 5 s.
+    testTimeout: 20_000,
   },
 });

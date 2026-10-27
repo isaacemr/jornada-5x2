@@ -10,7 +10,6 @@ import {
   type Empresa,
   type Funcionario,
   type GradeSemanal,
-  type Instrumento,
 } from '../dominio/tipos';
 import { type BancoJornada, db as dbPadrao } from './db';
 import { agoraISO, empresaPadrao, gradeVazia } from './padroes';
@@ -118,45 +117,6 @@ export function empresaExemplo(): Empresa {
   };
 }
 
-export function instrumentosExemplo(): Instrumento[] {
-  const agora = agoraISO();
-  return [
-    {
-      id: 'ex-cct',
-      tipo: 'CCT',
-      nome: 'CCT Comerciários 2026/2027 (fictícia)',
-      sindicato: 'Sindicato dos Empregados no Comércio de Vila Esperança (fictício)',
-      vigenciaInicio: '2026-05-01',
-      vigenciaFim: '2027-04-30',
-      observacoes: 'Exemplo para demonstração.',
-      criadoEm: agora,
-      atualizadoEm: agora,
-      clausulas: [
-        { id: 'c20', numero: '20', titulo: 'Duração do trabalho', texto: 'A jornada normal será de 44 horas semanais.', tipo: 'jornada_semanal', parametros: { jornadaSemanalMin: h(44) }, avaliacaoManual: null, observacao: '' },
-        { id: 'c21', numero: '21', titulo: 'Compensação do sábado', texto: 'Fica autorizada a prorrogação da jornada diária até 8h48 para compensar o sábado não trabalhado.', tipo: 'jornada_diaria', parametros: { jornadaDiariaMin: h(8, 48) }, avaliacaoManual: null, observacao: '' },
-        { id: 'c22', numero: '22', titulo: 'Escala de revezamento', texto: 'Os empregados poderão trabalhar em escala 6x1, com folga dominical ao menos a cada 3 semanas.', tipo: 'escala', parametros: { diasTrabalhoSemana: 6, domingoFolgaACadaSemanas: 3, regimeCompensatorioExcepcional: false }, avaliacaoManual: null, observacao: '' },
-        { id: 'c23', numero: '23', titulo: 'Banco de horas', texto: 'As horas excedentes poderão ser compensadas no prazo de até 12 meses.', tipo: 'banco_horas', parametros: { prazoBancoMeses: 12 }, avaliacaoManual: null, observacao: '' },
-        { id: 'c24', numero: '24', titulo: 'Jornada 12x36', texto: 'Para vigias e seguranças é permitida a jornada de 12 horas seguidas por 36 de descanso.', tipo: 'regime_12x36', parametros: {}, avaliacaoManual: null, observacao: '' },
-        { id: 'c25', numero: '25', titulo: 'Trabalho aos domingos', texto: 'O repouso semanal deverá coincidir com o domingo ao menos uma vez a cada 3 semanas.', tipo: 'domingos', parametros: { domingoFolgaACadaSemanas: 3 }, avaliacaoManual: null, observacao: '' },
-      ],
-    },
-    {
-      id: 'ex-acordo-ind',
-      tipo: 'acordo_individual_compensacao',
-      nome: 'Acordo de compensação do sábado — Administrativo',
-      sindicato: '',
-      vigenciaInicio: '2021-01-04',
-      vigenciaFim: '',
-      observacoes: 'Natália Gomes trabalha 8h48 de segunda a sexta para não trabalhar aos sábados.',
-      criadoEm: agora,
-      atualizadoEm: agora,
-      clausulas: [
-        { id: 'i1', numero: '1', titulo: 'Compensação semanal', texto: 'Jornada de 8h48 de segunda a sexta-feira, sem trabalho aos sábados.', tipo: 'jornada_diaria', parametros: { jornadaDiariaMin: h(8, 48) }, avaliacaoManual: null, observacao: '' },
-      ],
-    },
-  ];
-}
-
 function demanda(semana: number, sabado: number, domingo: number) {
   return { dom: domingo, seg: semana, ter: semana, qua: semana, qui: semana, sex: semana, sab: sabado };
 }
@@ -187,10 +147,9 @@ export function coberturasExemplo(): CoberturaSetor[] {
 /** Apaga tudo e carrega a empresa de exemplo. */
 export async function carregarExemplo(banco: BancoJornada = dbPadrao): Promise<void> {
   await apagarTudo(banco);
-  await banco.transaction('rw', [banco.empresa, banco.funcionarios, banco.instrumentos, banco.coberturas], async () => {
+  await banco.transaction('rw', [banco.empresa, banco.funcionarios, banco.coberturas], async () => {
     await banco.empresa.put(empresaExemplo());
     await banco.funcionarios.bulkPut(funcionariosExemplo());
-    await banco.instrumentos.bulkPut(instrumentosExemplo());
     await banco.coberturas.bulkPut(coberturasExemplo());
   });
 }

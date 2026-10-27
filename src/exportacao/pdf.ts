@@ -1,7 +1,6 @@
 /** Utilitários de PDF (jsPDF carregado sob demanda). */
 import type { jsPDF as JsPDF } from 'jspdf';
 import { AVISO_LEGAL } from '../config/textos-juridicos';
-import type { Bloco } from '../dominio/documento';
 
 export type Doc = JsPDF;
 
@@ -85,59 +84,6 @@ export function finalizar(doc: Doc, marcaDagua?: string): void {
   }
 }
 
-/** Escreve blocos de texto com quebra automática de página. */
-export function escreverBlocos(doc: Doc, blocos: Bloco[], yInicial: number): number {
-  const w = doc.internal.pageSize.getWidth();
-  const h = doc.internal.pageSize.getHeight();
-  const largura = w - 24;
-  let y = yInicial;
-  const garantir = (altura: number) => {
-    if (y + altura > h - 20) {
-      doc.addPage();
-      y = 18;
-    }
-  };
-  for (const b of blocos) {
-    if (b.tipo === 'espaco') {
-      y += 4;
-      continue;
-    }
-    if (b.tipo === 'quebra_pagina') {
-      doc.addPage();
-      y = 18;
-      continue;
-    }
-    const texto = pdfSeguro(b.texto ?? '');
-    const estilos: Record<Exclude<Bloco['tipo'], 'espaco' | 'quebra_pagina'>, [string, number, number]> = {
-      titulo: ['bold', 13, 6],
-      subtitulo: ['bold', 10.5, 5],
-      paragrafo: ['normal', 10, 4.6],
-      item: ['normal', 10, 4.6],
-      destaque: ['bold', 10, 4.6],
-      assinatura: ['normal', 10, 4.6],
-    };
-    const [fonte, tamanho, entrelinha] = estilos[b.tipo];
-    doc.setFont('helvetica', fonte);
-    doc.setFontSize(tamanho);
-    if (b.tipo === 'assinatura') {
-      garantir(20);
-      y += 12;
-      doc.line(12, y, 100, y);
-      doc.text(texto, 12, y + 5);
-      y += 10;
-      continue;
-    }
-    const recuo = b.tipo === 'item' ? 5 : 0;
-    const linhas: string[] = doc.splitTextToSize(b.tipo === 'item' ? `• ${texto}` : texto, largura - recuo);
-    for (const l of linhas) {
-      garantir(entrelinha);
-      doc.text(l, 12 + recuo, y);
-      y += entrelinha;
-    }
-    y += b.tipo === 'titulo' ? 3 : b.tipo === 'subtitulo' ? 1.5 : 2;
-  }
-  return y;
-}
 
 export function pdfParaBlob(doc: Doc): Blob {
   return doc.output('blob');

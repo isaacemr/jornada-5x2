@@ -1,14 +1,13 @@
 /**
- * Plano de ação gerado a partir da situação atual (empresa, equipe, acordos, checklist)
+ * Plano de ação gerado a partir da situação atual (empresa, equipe, escalas)
  * com prazos calculados a partir das datas das etapas.
+ * Tarefas feitas fora do assistente (sindicato, aditivos, ponto, eSocial) são marcadas manualmente.
  */
 import { REGRAS } from '../config/regras-ec141';
-import { ITENS_CHECKLIST_PONTO } from '../config/checklist-ponto';
-import { avaliarInstrumento } from './clausulas';
 import { contextoDiagnostico, diagnosticar } from './diagnostico';
 import { PORTES_PEQUENOS, type Prazos } from './etapas';
 import { formatarData, lerData, dataISO, somarDias } from './tempo';
-import type { Empresa, EstadoChecklist, EscalaSetor, Funcionario, Instrumento, Tarefa } from './tipos';
+import type { Empresa, EscalaSetor, Funcionario, Tarefa } from './tipos';
 
 export interface TarefaPlano extends Tarefa {
   /** Tela do assistente onde a tarefa é feita. */
@@ -20,9 +19,7 @@ export interface TarefaPlano extends Tarefa {
 export interface EntradaPlano {
   empresa: Empresa | null;
   funcionarios: Funcionario[];
-  instrumentos: Instrumento[];
   escalas: EscalaSetor[];
-  checklist: EstadoChecklist[];
   prazos: Prazos;
 }
 
@@ -41,10 +38,6 @@ export function gerarTarefasAuto(e: EntradaPlano): TarefaPlano[] {
   const semNovaE1 = precisamE1.filter((x) => !x.f.gradeNova);
   const precisamE2 = diags.filter((x) => !x.dv.adequadoEtapa2);
   const N = e.empresa?.config.domingoFolgaACadaSemanas ?? REGRAS.domingos.folgaACadaSemanasPadrao;
-  const clausulasPendentes = e.instrumentos.flatMap((i) => avaliarInstrumento(i, N)).filter((a) => a.final !== 'compativel' && !a.manual);
-  const incompativeis = e.instrumentos.flatMap((i) => avaliarInstrumento(i, N)).filter((a) => a.final === 'incompativel');
-  const feito = (id: string) => e.checklist.some((c) => c.id === id && c.feito);
-  const grupoFeito = (prefixo: string) => ITENS_CHECKLIST_PONTO.filter((i) => i.id.startsWith(prefixo)).every((i) => feito(i.id));
   const setores = new Set(e.funcionarios.map((f) => f.setor));
   const continua = !!e.empresa?.atividadeContinua;
   const acordoIndefinido = !e.empresa || e.empresa.config.acordoAmpliaJornadaEtapa1 === 'nao_sei' || e.empresa.config.acordoRegimeCompensatorio === 'nao_sei';
@@ -76,24 +69,23 @@ export function gerarTarefasAuto(e: EntradaPlano): TarefaPlano[] {
   });
   add({
     id: 'auto:acordos',
-    titulo: e.instrumentos.length ? `Revisar cláusulas de jornada (${clausulasPendentes.length} pendente(s))` : 'Cadastrar e revisar a convenção/acordo coletivo',
-    descricao: 'Identificar cláusulas que perdem eficácia e as que precisam ser renegociadas.',
+    titulo: 'Revisar a convenção/acordo coletivo',
+    descricao: 'Identificar cláusulas que perdem eficácia (ex.: 44 h semanais, 6x1 sem regime compensatório) e as que precisam ser renegociadas, com o sindicato ou advogado.',
     responsavel: 'Jurídico + RH',
     prazo: somarDias(E1, -45),
     etapa: 'etapa1',
-    rota: '/acordos',
-    cumpridaAuto: e.instrumentos.length > 0 && clausulasPendentes.length === 0,
+    cumpridaAuto: false,
   });
-  if (acordoIndefinido || incompativeis.length > 0) {
+  if (acordoIndefinido) {
     add({
       id: 'auto:sindicato',
       titulo: 'Negociar com o sindicato',
-      descricao: `Levar a pauta (distribuição das 42 h, regime compensatório, banco de horas, domingos)${incompativeis.length ? ` e as ${incompativeis.length} cláusula(s) incompatível(is)` : ''}. Registrar o resultado em aditivo à convenção/acordo.`,
+      descricao: 'Distribuição das 42 h na transição, regime compensatório, banco de horas e domingos. Registrar o resultado em aditivo à convenção/acordo e atualizar as respostas em “Dados da empresa”.',
       responsavel: 'Diretoria + Jurídico',
       prazo: somarDias(E1, -30),
       etapa: 'etapa1',
-      rota: '/acordos/pauta',
-      cumpridaAuto: !acordoIndefinido && incompativeis.length === 0,
+      rota: '/empresa',
+      cumpridaAuto: false,
     });
   }
   add({
@@ -145,18 +137,16 @@ export function gerarTarefasAuto(e: EntradaPlano): TarefaPlano[] {
     responsavel: 'Gestores',
     prazo: somarDias(E1, -10),
     etapa: 'etapa1',
-    rota: '/contratos/ponto',
-    cumpridaAuto: feito('equipe-comunicacao'),
+    cumpridaAuto: false,
   });
   add({
     id: 'auto:aditivos',
     titulo: 'Assinar os termos aditivos de contrato',
-    descricao: 'Gerar os modelos, revisar com o jurídico/contador e colher as assinaturas.',
+    descricao: 'Formalizar a nova jornada de cada funcionário (revisar o modelo com o jurídico ou contador) e colher as assinaturas.',
     responsavel: 'RH/DP',
     prazo: somarDias(E1, -7),
     etapa: 'etapa1',
-    rota: '/contratos',
-    cumpridaAuto: feito('contratos-aditivos'),
+    cumpridaAuto: false,
   });
   add({
     id: 'auto:ponto',
@@ -165,8 +155,7 @@ export function gerarTarefasAuto(e: EntradaPlano): TarefaPlano[] {
     responsavel: 'RH/DP + fornecedor do ponto',
     prazo: somarDias(E1, -3),
     etapa: 'etapa1',
-    rota: '/contratos/ponto',
-    cumpridaAuto: grupoFeito('ponto-'),
+    cumpridaAuto: false,
   });
   add({
     id: 'auto:folha',
@@ -175,8 +164,7 @@ export function gerarTarefasAuto(e: EntradaPlano): TarefaPlano[] {
     responsavel: 'Contador',
     prazo: E1,
     etapa: 'etapa1',
-    rota: '/contratos/ponto',
-    cumpridaAuto: grupoFeito('folha-'),
+    cumpridaAuto: false,
   });
   add({
     id: 'auto:esocial1',
@@ -185,8 +173,7 @@ export function gerarTarefasAuto(e: EntradaPlano): TarefaPlano[] {
     responsavel: 'Contador',
     prazo: diaDoMesSeguinte(E1, REGRAS.esocial.diaLimiteMesSeguinte),
     etapa: 'etapa1',
-    rota: '/contratos/ponto',
-    cumpridaAuto: feito('esocial-s2206'),
+    cumpridaAuto: false,
   });
   add({
     id: 'auto:acompanhar1',
@@ -252,7 +239,6 @@ export function gerarTarefasAuto(e: EntradaPlano): TarefaPlano[] {
     responsavel: 'Jurídico + RH',
     prazo: somarDias(E2, -60),
     etapa: 'etapa2',
-    rota: '/acordos',
     cumpridaAuto: false,
   });
   add({
@@ -262,7 +248,6 @@ export function gerarTarefasAuto(e: EntradaPlano): TarefaPlano[] {
     responsavel: 'RH/DP',
     prazo: somarDias(E2, -7),
     etapa: 'etapa2',
-    rota: '/contratos',
     cumpridaAuto: false,
   });
   add({
@@ -272,7 +257,6 @@ export function gerarTarefasAuto(e: EntradaPlano): TarefaPlano[] {
     responsavel: 'RH/DP + contador',
     prazo: somarDias(E2, -3),
     etapa: 'etapa2',
-    rota: '/contratos/ponto',
     cumpridaAuto: false,
   });
   add({

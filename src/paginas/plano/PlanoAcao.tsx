@@ -8,7 +8,7 @@ import { gerarTarefasAuto, mesclarTarefas, situacaoTarefa, type SituacaoTarefa, 
 import { diferencaDias, formatarData } from '../../dominio/tempo';
 import type { EtapaTarefa, Tarefa } from '../../dominio/tipos';
 import { baixarBlob } from '../../exportacao/baixar';
-import { useContexto, useFuncionarios, useInstrumentos } from '../../hooks/useDados';
+import { useContexto, useFuncionarios } from '../../hooks/useDados';
 import { Botao } from '../../componentes/ui/Botao';
 import { BarraProgresso, CabecalhoPagina, Carregando, Cartao, Selo } from '../../componentes/ui/Basicos';
 import { CampoCheckbox, CampoSelect, CampoTexto } from '../../componentes/ui/Campos';
@@ -35,18 +35,16 @@ function paraSalvar(t: TarefaPlano): Tarefa {
 export default function PlanoAcao() {
   const { empresa, prazos, hoje } = useContexto();
   const funcionarios = useFuncionarios();
-  const instrumentos = useInstrumentos();
   const escalas = useLiveQuery(() => db.escalas.toArray(), []);
-  const checklist = useLiveQuery(() => db.checklist.toArray(), []);
   const salvas = useLiveQuery(() => db.tarefas.toArray(), []);
   const [mostrarConcluidas, setMostrarConcluidas] = useState(true);
   const [nova, setNova] = useState({ titulo: '', responsavel: '', prazo: '', etapa: 'etapa1' as EtapaTarefa });
 
   const tarefas = useMemo(() => {
-    if (!funcionarios || !instrumentos || !escalas || !checklist || !salvas || empresa === undefined) return null;
-    const auto = gerarTarefasAuto({ empresa, funcionarios, instrumentos, escalas, checklist, prazos });
+    if (!funcionarios || !escalas || !salvas || empresa === undefined) return null;
+    const auto = gerarTarefasAuto({ empresa, funcionarios, escalas, prazos });
     return mesclarTarefas(auto, salvas);
-  }, [empresa, funcionarios, instrumentos, escalas, checklist, salvas, prazos]);
+  }, [empresa, funcionarios, escalas, salvas, prazos]);
 
   if (!tarefas) return <Carregando />;
 

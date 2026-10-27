@@ -2,7 +2,7 @@
 import { describe, expect, it } from 'vitest';
 import { FAQ, RESUMO } from '../config/faq';
 import { REGRAS } from '../config/regras-ec141';
-import { empresaExemplo, funcionariosExemplo, instrumentosExemplo } from '../dados/exemplo';
+import { empresaExemplo, funcionariosExemplo } from '../dados/exemplo';
 import { gradeUniforme } from '../dados/padroes';
 import { pdfPlano } from '../exportacao/plano';
 import { calcularPrazos } from './etapas';
@@ -13,9 +13,7 @@ const prazos = calcularPrazos({ porte: 'DEMAIS', prestaServicoPoderPublico: fals
 const base: EntradaPlano = {
   empresa: empresaExemplo(),
   funcionarios: funcionariosExemplo(),
-  instrumentos: instrumentosExemplo(),
   escalas: [],
-  checklist: [],
   prazos,
 };
 
@@ -27,6 +25,13 @@ describe('plano de ação', () => {
     const aditivos = t.find((x) => x.id === 'auto:aditivos')!;
     expect(aditivos.prazo < prazos.inicioEtapa1).toBe(true);
     expect(t.filter((x) => x.etapa === 'etapa2').every((x) => x.prazo >= '2027-09-01')).toBe(true);
+  });
+
+  it('só aponta para telas que existem no assistente', () => {
+    const rotas = new Set(['/empresa', '/funcionarios', '/jornada', '/escala', '/escala/cobertura', '/entenda']);
+    const p = calcularPrazos({ porte: 'EPP', prestaServicoPoderPublico: true });
+    const t = gerarTarefasAuto({ ...base, prazos: p, empresa: { ...empresaExemplo(), porte: 'EPP', prestaServicoPoderPublico: true } });
+    for (const x of t) if (x.rota) expect(rotas.has(x.rota)).toBe(true);
   });
 
   it('detecta tarefas já cumpridas pelo estado', () => {
@@ -50,15 +55,6 @@ describe('plano de ação', () => {
     expect(t.find((x) => x.id === 'auto:planejar2')!.cumpridaAuto).toBe(true);
   });
 
-  it('checklist do ponto concluído cumpre a tarefa do ponto', () => {
-    const checklist = ['ponto-horarios', 'ponto-escalas', 'ponto-tolerancia', 'ponto-limite-he', 'ponto-banco', 'ponto-intervalos', 'ponto-dsr'].map((id) => ({
-      id,
-      feito: true,
-      feitoEm: null,
-      observacao: '',
-    }));
-    expect(gerarTarefasAuto({ ...base, checklist }).find((x) => x.id === 'auto:ponto')!.cumpridaAuto).toBe(true);
-  });
 
   it('terceirizada pública e pequena empresa geram tarefas próprias', () => {
     const p = calcularPrazos({ porte: 'EPP', prestaServicoPoderPublico: true });

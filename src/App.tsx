@@ -14,11 +14,6 @@ const ImportarFuncionarios = lazy(() => import('./paginas/funcionarios/ImportarF
 const SimuladorJornada = lazy(() => import('./paginas/jornada/SimuladorJornada'));
 const MontadorEscala = lazy(() => import('./paginas/escala/MontadorEscala'));
 const Cobertura = lazy(() => import('./paginas/escala/Cobertura'));
-const ListaAcordos = lazy(() => import('./paginas/acordos/ListaAcordos'));
-const FormInstrumento = lazy(() => import('./paginas/acordos/FormInstrumento'));
-const Pauta = lazy(() => import('./paginas/acordos/Pauta'));
-const Contratos = lazy(() => import('./paginas/contratos/Contratos'));
-const ChecklistPonto = lazy(() => import('./paginas/contratos/ChecklistPonto'));
 const PlanoAcao = lazy(() => import('./paginas/plano/PlanoAcao'));
 const Entenda = lazy(() => import('./paginas/entenda/Entenda'));
 
@@ -46,11 +41,6 @@ function Rotas() {
           <Route path="/jornada" element={<SimuladorJornada />} />
           <Route path="/escala" element={<MontadorEscala />} />
           <Route path="/escala/cobertura" element={<Cobertura />} />
-          <Route path="/acordos" element={<ListaAcordos />} />
-          <Route path="/acordos/pauta" element={<Pauta />} />
-          <Route path="/acordos/:id" element={<FormInstrumento />} />
-          <Route path="/contratos" element={<Contratos />} />
-          <Route path="/contratos/ponto" element={<ChecklistPonto />} />
           <Route path="/plano" element={<PlanoAcao />} />
           <Route path="/entenda" element={<Entenda />} />
           <Route path="*" element={<NaoEncontrada />} />

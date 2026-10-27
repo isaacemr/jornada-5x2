@@ -15,10 +15,9 @@ Site para empresários e departamentos pessoais de pequenas e médias empresas a
 | 0 | Painel | Contagem regressiva (16/12/2026, 16/12/2027 e, se for o caso, 16/10/2027); dados da empresa; % da equipe adequada às etapas 1 e 2 |
 | 1 | Funcionários | Cadastro manual; importação CSV/XLSX com modelo para baixar; diagnóstico automático com o motivo de cada situação |
 | 2 | Redistribuir jornada | Opções de grade para 42 h e 40 h; validação em tempo real (intervalo, interjornada, repousos); comparativo de valor-hora e hora extra com divisor configurável |
-| 3 | Escala e cobertura | Calculadora de pessoas por turno com revezamento de folgas e domingos; lacuna em horas e custo das alternativas; montador visual com arrastar e soltar; exportação em PDF e XLSX |
-| 4 | Acordos coletivos | Cadastro de instrumentos e cláusulas; checklist compatível / perde eficácia / revisar; pauta de negociação (DOCX/PDF) marcada como MODELO |
-| 5 | Contratos e ponto | Termo aditivo por funcionário ou em lote (DOCX/PDF, marcado "MODELO — revisar antes de assinar"); checklist do ponto e do eSocial (S-2206); planilha de-para |
-| 6 | Plano de ação | Tarefas automáticas com responsáveis e prazos, linha do tempo e PDF; página "Entenda a EC 141/2026" com perguntas frequentes |
+| 3 | Opções de horário | Calculadora de pessoas por turno com revezamento de folgas e domingos; lacuna em horas e custo das alternativas; montador visual com arrastar e soltar; exportação em PDF e XLSX |
+| 4 | Plano de ação | Tarefas automáticas com responsáveis e prazos, linha do tempo e PDF |
+| ? | Entenda e tire dúvidas | As regras em linguagem simples e perguntas frequentes |
 
 Para conhecer o sistema, use **Backup e dados de exemplo → Carregar exemplo**. Ele carrega um supermercado **fictício** com 16 funcionários, a maioria em 6x1, que abre aos domingos.
 
@@ -70,7 +69,7 @@ Use HTTPS: o IndexedDB e o download de arquivos funcionam melhor em contexto seg
 
 ## Como atualizar as regras quando sair a regulamentação
 
-Todas as datas, limites e parâmetros legais estão em **[`src/config/regras-ec141.ts`](src/config/regras-ec141.ts)**. Nenhuma tela tem números fixos: painel, diagnóstico, simulador, avaliação de cláusulas, pauta, aditivos, plano de ação e FAQ leem esse arquivo.
+Todas as datas, limites e parâmetros legais estão em **[`src/config/regras-ec141.ts`](src/config/regras-ec141.ts)**. Nenhuma tela tem números fixos: painel, diagnóstico, simulador, cobertura, plano de ação e perguntas frequentes leem esse arquivo.
 
 1. **Confira o texto oficial** (Diário Oficial da União / Planalto) e a regulamentação publicada.
 2. **Edite o valor correspondente**. Exemplos:
@@ -79,7 +78,7 @@ Todas as datas, limites e parâmetros legais estão em **[`src/config/regras-ec1
    - lei complementar de MEI/ME/EPP: troque `excecoes.meiMeEpp.status` para `'regulamentado'` e, se houver datas próprias, a empresa pode informá-las em **Dados da empresa** (ou você pode incorporar a regra em `calcularPrazos`, em `src/dominio/etapas.ts`);
    - prazo de terceirizadas da administração pública: `excecoes.terceirizadaAdministracaoPublica.prazoEtapa1`;
    - divisores padrão: `divisores.porHorasSemanais`.
-3. **Atualize a fonte** do item (`fonte`) e mude `confirmarNoTextoOficial` para `false` quando o valor tiver sido conferido. A página **Entenda** lista automaticamente os itens ainda marcados como `true`.
+3. **Atualize a fonte** do item (`fonte`) e mude `confirmarNoTextoOficial` para `false` quando o valor tiver sido conferido. A página **Entenda e tire dúvidas** lista automaticamente os itens ainda marcados como `true`.
 4. **Atualize `versaoRegras`** com a data da revisão (aparece no rodapé).
 5. **Rode `npm test`.** Os testes leem os valores do arquivo; se algum teste fixar uma data que mudou (por exemplo, `etapas.test.ts`), atualize a expectativa e confira se o comportamento novo está correto.
 6. Gere o build e publique de novo.
@@ -90,7 +89,7 @@ Unidades: tempos em **minutos**; datas em **`AAAA-MM-DD`**.
 
 ```
 src/
-├─ config/            regras-ec141.ts (fonte única das regras), textos jurídicos, FAQ, checklist do ponto
+├─ config/            regras-ec141.ts (fonte única das regras), textos jurídicos, FAQ
 ├─ dominio/           funções puras de cálculo e validação (com testes *.test.ts)
 │  ├─ tempo.ts          horários, durações, datas, moeda
 │  ├─ etapas.ts         prazos por perfil de empresa, etapa vigente, limites, contagem regressiva
@@ -100,12 +99,9 @@ src/
 │  ├─ remuneracao.ts    divisor, valor-hora, hora extra
 │  ├─ cobertura.ts      revezamento de folgas, dimensionamento por turno, custos
 │  ├─ escala.ts         validação do montador e escala sugerida
-│  ├─ clausulas.ts      checklist de cláusulas coletivas
-│  ├─ pauta.ts          pauta/minuta para o sindicato
-│  ├─ aditivo.ts        termo aditivo e planilha de-para
 │  └─ planoAcao.ts      tarefas automáticas e prazos
 ├─ dados/             IndexedDB (Dexie), esquemas zod, backup, importação CSV/XLSX, dados de exemplo
-├─ exportacao/        PDF (jsPDF), DOCX (docx), XLSX (exceljs), carregados sob demanda
+├─ exportacao/        PDF (jsPDF) e XLSX (exceljs), carregados sob demanda
 ├─ componentes/       layout, componentes de interface, editor de grade e de turnos
 ├─ hooks/             acesso reativo aos dados
 └─ paginas/           uma pasta por módulo

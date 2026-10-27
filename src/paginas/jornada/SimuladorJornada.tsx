@@ -327,8 +327,8 @@ export default function SimuladorJornada() {
             {aplicado && (
               <Alerta tipo="sucesso" vivo className="mb-3">
                 {aplicado}{' '}
-                <Link to="/contratos" className="underline">
-                  Gerar termos aditivos
+                <Link to="/escala" className="underline">
+                  Montar a escala
                 </Link>
               </Alerta>
             )}

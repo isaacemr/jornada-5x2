@@ -3,7 +3,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { db } from '../dados/db';
 import { calcularPrazos, etapaVigente, limitesDaEtapa, perfilDaEmpresa } from '../dominio/etapas';
 import { hojeISO } from '../dominio/tempo';
-import type { Empresa, Funcionario, Instrumento } from '../dominio/tipos';
+import type { Empresa, Funcionario } from '../dominio/tipos';
 
 const CARREGANDO = 'carregando' as const;
 
@@ -17,9 +17,6 @@ export function useFuncionarios(): Funcionario[] | undefined {
   return useLiveQuery(() => db.funcionarios.orderBy('nome').toArray(), []);
 }
 
-export function useInstrumentos(): Instrumento[] | undefined {
-  return useLiveQuery(() => db.instrumentos.toArray(), []);
-}
 
 /** Data de hoje (atualiza à meia-noite) e prazos/limites da empresa. */
 export function useContexto() {

@@ -8,11 +8,9 @@ export const MENU = [
   { para: '/', texto: 'Painel', numero: '0' },
   { para: '/funcionarios', texto: 'Funcionários', numero: '1' },
   { para: '/jornada', texto: 'Redistribuir jornada', numero: '2' },
-  { para: '/escala', texto: 'Escala e cobertura', numero: '3' },
-  { para: '/acordos', texto: 'Acordos coletivos', numero: '4' },
-  { para: '/contratos', texto: 'Contratos e ponto', numero: '5' },
-  { para: '/plano', texto: 'Plano de ação', numero: '6' },
-  { para: '/entenda', texto: 'Entenda a EC 141', numero: '?' },
+  { para: '/escala', texto: 'Opções de horário', numero: '3' },
+  { para: '/plano', texto: 'Plano de ação', numero: '4' },
+  { para: '/entenda', texto: 'Entenda e tire dúvidas', numero: '?' },
 ] as const;
 
 function ItensMenu({ aoClicar }: { aoClicar?: () => void }) {
