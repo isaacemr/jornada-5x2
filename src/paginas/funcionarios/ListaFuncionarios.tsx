@@ -3,9 +3,10 @@ import { Link, useSearchParams } from 'react-router-dom';
 import { contextoDiagnostico, diagnosticar, type Diagnostico } from '../../dominio/diagnostico';
 import { formatarData, formatarDuracao, formatarMoeda } from '../../dominio/tempo';
 import type { Funcionario, StatusDiagnostico } from '../../dominio/tipos';
+import { db } from '../../dados/db';
 import { useContexto, useFuncionarios } from '../../hooks/useDados';
-import { BotaoLink } from '../../componentes/ui/Botao';
-import { CabecalhoPagina, Carregando, Cartao, SeloStatus } from '../../componentes/ui/Basicos';
+import { Botao, BotaoLink } from '../../componentes/ui/Botao';
+import { CabecalhoPagina, Carregando, Cartao, Modal, SeloStatus } from '../../componentes/ui/Basicos';
 import { CampoSelect, CampoTexto } from '../../componentes/ui/Campos';
 
 const OPCOES_STATUS: { valor: '' | StatusDiagnostico; texto: string }[] = [
@@ -23,6 +24,7 @@ export default function ListaFuncionarios() {
   const [busca, setBusca] = useState('');
   const [setor, setSetor] = useState('');
   const [selecionados, setSelecionados] = useState<Set<string>>(new Set());
+  const [aExcluir, setAExcluir] = useState<Funcionario | null>(null);
   const status = (params.get('status') ?? '') as '' | StatusDiagnostico;
 
   const linhas = useMemo(() => {
@@ -52,6 +54,14 @@ export default function ListaFuncionarios() {
   };
   const todosSelecionados = filtradas.length > 0 && filtradas.every(({ f }) => selecionados.has(f.id));
   const idsSel = [...selecionados].filter((id) => linhas.some((l) => l.f.id === id));
+
+  async function excluir(f: Funcionario) {
+    await db.funcionarios.delete(f.id);
+    const s = new Set(selecionados);
+    s.delete(f.id);
+    setSelecionados(s);
+    setAExcluir(null);
+  }
 
   return (
     <>
@@ -143,11 +153,12 @@ export default function ListaFuncionarios() {
                   <th scope="col" className="text-right">Horas/sem.</th>
                   <th scope="col">Situação</th>
                   <th scope="col">O que ajustar</th>
+                  <th scope="col">Ações</th>
                 </tr>
               </thead>
               <tbody>
                 {filtradas.map(({ f, d }) => (
-                  <Linha key={f.id} f={f} d={d} selecionado={selecionados.has(f.id)} alternar={alternar} />
+                  <Linha key={f.id} f={f} d={d} selecionado={selecionados.has(f.id)} alternar={alternar} pedirExclusao={setAExcluir} />
                 ))}
               </tbody>
             </table>
@@ -177,6 +188,7 @@ export default function ListaFuncionarios() {
                       {d.prazo && <span className="text-xs text-slate-700">até {formatarData(d.prazo)}</span>}
                     </div>
                     <p className="mt-2 text-sm text-slate-700">{d.resumoCurto}</p>
+                    <AcoesFuncionario f={f} pedirExclusao={setAExcluir} />
                   </div>
                 </div>
               </li>
@@ -184,11 +196,56 @@ export default function ListaFuncionarios() {
           </ul>
         </>
       )}
+
+      <Modal aberto={aExcluir !== null} aoFechar={() => setAExcluir(null)} titulo="Excluir funcionário?">
+        <p className="mb-4">Excluir {aExcluir?.nome} deste navegador? Esta ação não pode ser desfeita.</p>
+        <div className="flex justify-end gap-2">
+          <Botao variante="secundario" onClick={() => setAExcluir(null)}>
+            Cancelar
+          </Botao>
+          <Botao variante="perigo" onClick={() => aExcluir && void excluir(aExcluir)}>
+            Excluir
+          </Botao>
+        </div>
+      </Modal>
     </>
   );
 }
 
-function Linha({ f, d, selecionado, alternar }: { f: Funcionario; d: Diagnostico; selecionado: boolean; alternar: (id: string) => void }) {
+function AcoesFuncionario({
+  f,
+  pedirExclusao,
+  className = 'mt-2',
+}: {
+  f: Funcionario;
+  pedirExclusao: (f: Funcionario) => void;
+  className?: string;
+}) {
+  return (
+    <div className={`flex flex-wrap gap-2 ${className}`}>
+      <BotaoLink to={`/funcionarios/${f.id}`} variante="secundario" tamanho="pequeno" aria-label={`Editar ${f.nome}`}>
+        Editar
+      </BotaoLink>
+      <Botao variante="perigo" tamanho="pequeno" aria-label={`Excluir ${f.nome}`} onClick={() => pedirExclusao(f)}>
+        Excluir
+      </Botao>
+    </div>
+  );
+}
+
+function Linha({
+  f,
+  d,
+  selecionado,
+  alternar,
+  pedirExclusao,
+}: {
+  f: Funcionario;
+  d: Diagnostico;
+  selecionado: boolean;
+  alternar: (id: string) => void;
+  pedirExclusao: (f: Funcionario) => void;
+}) {
   return (
     <tr className={selecionado ? 'bg-marca-50' : ''}>
       <td>
@@ -220,6 +277,9 @@ function Linha({ f, d, selecionado, alternar }: { f: Funcionario; d: Diagnostico
         {d.prazo && <span className="mt-1 block text-xs text-slate-700">até {formatarData(d.prazo)}</span>}
       </td>
       <td className="max-w-sm text-sm text-slate-700">{d.resumoCurto}</td>
+      <td>
+        <AcoesFuncionario f={f} pedirExclusao={pedirExclusao} className="" />
+      </td>
     </tr>
   );
 }
