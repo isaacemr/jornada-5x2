@@ -30,7 +30,7 @@ export async function tabela(doc: Doc, opcoes: Parameters<typeof import('jspdf-a
   const autoTable = (await import('jspdf-autotable')).default;
   autoTable(doc, {
     styles: { font: 'helvetica', fontSize: 8, cellPadding: 1.5, overflow: 'linebreak' },
-    headStyles: { fillColor: [15, 81, 50], textColor: 255 },
+    headStyles: { fillColor: [10, 90, 62], textColor: 255 },
     margin: { left: 12, right: 12, bottom: 18 },
     ...opcoes,
   });

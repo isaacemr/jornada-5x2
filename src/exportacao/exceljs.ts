@@ -16,6 +16,6 @@ export async function workbookParaBlob(wb: ExcelJSNs.Workbook): Promise<Blob> {
 
 export const ESTILO_CABECALHO: Partial<ExcelJSNs.Style> = {
   font: { bold: true, color: { argb: 'FFFFFFFF' } },
-  fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF0F5132' } },
+  fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF0A5A3E' } },
   alignment: { vertical: 'middle', wrapText: true },
 };

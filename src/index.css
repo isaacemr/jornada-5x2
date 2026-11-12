@@ -1,12 +1,12 @@
 @import 'tailwindcss';
 
 @theme {
-  --color-marca-50: #ecfdf3;
-  --color-marca-100: #d1fae1;
-  --color-marca-600: #11804a;
-  --color-marca-700: #0f6b3e;
-  --color-marca-800: #0f5132;
-  --color-marca-900: #0b3d26;
+  --color-marca-50: #ecf7f2;
+  --color-marca-100: #d2ede1;
+  --color-marca-600: #127f58;
+  --color-marca-700: #0c6b4a;
+  --color-marca-800: #0a5a3e;
+  --color-marca-900: #07422d;
   --font-sans: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
 }
 
