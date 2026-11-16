@@ -3,6 +3,7 @@
  */
 import { REGRAS } from '../config/regras-ec141';
 import { alocarPessoas, dimensionarTurno, duracaoTrabalhadaTurno, gerarRevezamento, type LimitesCobertura } from './cobertura';
+import { domingoACadaSemanas as regraDaPessoa, textoRegraDomingo } from './domingos';
 import { formatarData, formatarDuracao, paraMinutos, somarDias } from './tempo';
 import { DIAS_SEMANA, FOLGA, NOME_DIA_CURTO, type CelulaEscala, type Funcionario, type Motivo, type TurnoBase, type TurnoCobertura } from './tipos';
 
@@ -22,6 +23,8 @@ export function validarLinha(
   L: LimitesCobertura,
   domingoACadaSemanas: number,
   inicio: string,
+  /** 'erro' quando a regra não admite exceção (mulheres, CLT art. 386). */
+  severidadeDomingo: 'aviso' | 'erro' = 'aviso',
 ): ProblemaLinha[] {
   const p: ProblemaLinha[] = [];
   const porId = new Map(turnos.map((t) => [t.id, t]));
@@ -71,9 +74,9 @@ export function validarLinha(
       if (seguidos >= domingoACadaSemanas) {
         p.push({
           codigo: 'DOMINGO',
-          severidade: 'aviso',
+          severidade: severidadeDomingo,
           celula: d.i,
-          texto: `${domingoACadaSemanas} domingos seguidos de trabalho (até ${formatarData(dataDaCelula(inicio, d.i))}). Garanta 1 domingo de folga a cada ${domingoACadaSemanas} semanas.`,
+          texto: `${domingoACadaSemanas} domingos seguidos de trabalho (até ${formatarData(dataDaCelula(inicio, d.i))}). Garanta ${textoRegraDomingo([domingoACadaSemanas])}.`,
         });
         break;
       }
@@ -106,6 +109,11 @@ export function domingoDaSemana(iso: string): string {
   return somarDias(iso, -d.getDay());
 }
 
+/** Parcela de mulheres na equipe (0 a 1). */
+export function proporcaoMulheres(funcionarios: Pick<Funcionario, 'sexo'>[]): number {
+  return funcionarios.length ? funcionarios.filter((f) => f.sexo === 'F').length / funcionarios.length : 0;
+}
+
 /** Primeiro horário de entrada da grade atual (para associar pessoas a turnos). */
 function entradaReferencia(f: Funcionario): number {
   const g = f.gradeNova ?? f.gradeAtual;
@@ -115,7 +123,8 @@ function entradaReferencia(f: Funcionario): number {
 
 /**
  * Gera uma escala sugerida: distribui as pessoas entre os turnos (pela proximidade do horário atual)
- * e aplica o revezamento de folgas com domingos.
+ * e aplica o revezamento de folgas com domingos — cada pessoa com a sua regra (mulheres: a cada 2 semanas).
+ * `domingoACadaSemanas` é a regra dos homens.
  */
 export function sugerirEscala(
   funcionarios: Funcionario[],
@@ -126,7 +135,7 @@ export function sugerirEscala(
 ): { funcionarioId: string; celulas: CelulaEscala[] }[] {
   if (turnos.length === 0) return funcionarios.map((f) => ({ funcionarioId: f.id, celulas: Array(semanas * 7).fill(FOLGA) }));
   const N = Math.max(1, domingoACadaSemanas);
-  const dims = turnos.map((t) => dimensionarTurno(t, L, N));
+  const dims = turnos.map((t) => dimensionarTurno(t, L, N, proporcaoMulheres(funcionarios)));
   const qtd = alocarPessoas(funcionarios.length, dims.map((d) => d.pessoasNecessarias || 1));
   const pessoas = [...funcionarios].sort((a, b) => entradaReferencia(a) - entradaReferencia(b));
   const ordemTurnos = turnos.map((t, i) => ({ t, i })).sort((a, b) => paraMinutos(a.t.inicio) - paraMinutos(b.t.inicio));
@@ -142,6 +151,7 @@ export function sugerirEscala(
       demanda: t.demanda,
       semanas,
       domingoFolgaACadaSemanas: N,
+      domingoPorPessoa: grupo.map((f) => regraDaPessoa(f.sexo, N)),
       folgasPorSemana: 7 - dims[i].diasPorPessoa,
       deslocamento: i,
     });

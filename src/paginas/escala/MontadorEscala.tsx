@@ -2,9 +2,11 @@ import { DndContext, PointerSensor, TouchSensor, useDraggable, useDroppable, use
 import { useLiveQuery } from 'dexie-react-hooks';
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
+import { REGRAS } from '../../config/regras-ec141';
 import { db } from '../../dados/db';
 import { agoraISO } from '../../dados/padroes';
 import { limitesParaCobertura } from '../../dominio/cobertura';
+import { domingoACadaSemanas } from '../../dominio/domingos';
 import { agruparPorTurno, contarCobertura, domingoDaSemana, rotulosColunas, sugerirEscala, validarLinha, type ProblemaLinha } from '../../dominio/escala';
 import { hojeISO, paraMinutos } from '../../dominio/tempo';
 import { DIAS_SEMANA, FOLGA, type EscalaSetor, type Funcionario, type TurnoBase, type TurnoCobertura } from '../../dominio/tipos';
@@ -69,7 +71,8 @@ export default function MontadorEscala() {
   const setor = params.get('setor') ?? setores[0] ?? '';
   const equipe = useMemo(() => (funcionarios ?? []).filter((f) => f.setor === setor), [funcionarios, setor]);
   const cobertura = coberturas?.find((c) => c.id === setor);
-  const N = empresa?.config.domingoFolgaACadaSemanas ?? 4;
+  // Regra dos homens; mulheres seguem o revezamento quinzenal (veja domingoACadaSemanas).
+  const N = empresa?.config.domingoFolgaACadaSemanas ?? REGRAS.domingos.homensRegraGeral;
   // Limites conforme a etapa em que a escala começa.
   const etapaEscala = escala && escala.inicio >= prazos.inicioEtapa2 ? 2 : 1;
   const Lescala = limitesParaCobertura(etapaEscala, empresa?.config.acordoAmpliaJornadaEtapa1 === 'sim' && etapaEscala === 1);
@@ -133,9 +136,22 @@ export default function MontadorEscala() {
 
   const problemas = useMemo(() => {
     const m = new Map<string, ProblemaLinha[]>();
-    if (escala) for (const l of escala.linhas) m.set(l.funcionarioId, validarLinha(l.celulas, escala.turnos, Lescala, N, escala.inicio));
+    const sexo = new Map(funcionarios?.map((f) => [f.id, f.sexo]));
+    if (escala)
+      for (const l of escala.linhas)
+        m.set(
+          l.funcionarioId,
+          validarLinha(
+            l.celulas,
+            escala.turnos,
+            Lescala,
+            domingoACadaSemanas(sexo.get(l.funcionarioId), N),
+            escala.inicio,
+            sexo.get(l.funcionarioId) === 'F' ? 'erro' : 'aviso',
+          ),
+        );
     return m;
-  }, [escala, Lescala.limiteDiarioMin, Lescala.limiteSemanalMin, N]);
+  }, [escala, funcionarios, Lescala.limiteDiarioMin, Lescala.limiteSemanalMin, N]);
 
   if (!funcionarios || !escalas || !coberturas) return <Carregando />;
 

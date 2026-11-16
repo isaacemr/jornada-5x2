@@ -36,6 +36,8 @@ export type GradeSemanal = Record<DiaSemana, DiaJornada>;
 
 export type Porte = 'MEI' | 'ME' | 'EPP' | 'DEMAIS';
 export type Escala = '6x1' | '5x2' | '12x36' | 'outra';
+/** Usado na regra de folga aos domingos (mulheres: revezamento quinzenal, CLT art. 386). */
+export type Sexo = 'F' | 'M';
 export type SimNaoNaoSei = 'sim' | 'nao' | 'nao_sei';
 
 export interface DiaFuncionamento {
@@ -51,7 +53,7 @@ export interface ConfigEmpresa {
   adicionalHoraExtra: number;
   /** Adicional em domingos/feriados (1 = 100%). */
   adicionalDomingoFeriado: number;
-  /** Ao menos 1 domingo de folga a cada N semanas. */
+  /** Homens: ao menos 1 domingo de folga a cada N semanas (mulheres: sempre a cada 2, CLT art. 386). */
   domingoFolgaACadaSemanas: number;
   /** Encargos sobre salário para estimar custo de contratação (%); null = não informado. */
   encargosPercentual: number | null;
@@ -86,6 +88,8 @@ export interface Funcionario {
   matricula?: string;
   cargo: string;
   setor: string;
+  /** Não informado em cadastros antigos: usa a regra dos homens e o diagnóstico pede para completar. */
+  sexo?: Sexo;
   salario: number;
   jornadaSemanalContratualMin: number;
   escalaAtual: Escala;

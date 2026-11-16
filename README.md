@@ -19,6 +19,16 @@ Site para empresários e departamentos pessoais de pequenas e médias empresas a
 | 4 | Plano de ação | Tarefas automáticas com responsáveis e prazos, linha do tempo e PDF |
 | ? | Entenda e tire dúvidas | As regras em linguagem simples e perguntas frequentes |
 
+### Folga aos domingos
+
+A regra muda conforme o sexo cadastrado de cada funcionário e é aplicada pessoa a pessoa no diagnóstico, na validação e no revezamento automático:
+
+- **Mulheres:** revezamento quinzenal, ou seja, um domingo sim e outro não (CLT art. 386). É fixa na ferramenta, porque o TST entende que acordo ou convenção coletiva não pode afastá-la.
+- **Homens:** a regra é configurada em **Dados da empresa** e sugerida pelo ramo de atividade. No comércio é 1 domingo a cada 3 semanas (Lei 10.101/2000, art. 6º). Nas demais atividades, a regra geral é a cada 7 semanas.
+- **Sexo não informado:** a ferramenta usa a regra dos homens e o diagnóstico pede para completar o cadastro.
+
+A calculadora de cobertura estima as contratações na mesma proporção de mulheres da equipe do setor.
+
 Para conhecer o sistema, use **Backup e dados de exemplo → Carregar exemplo**. Ele carrega um supermercado **fictício** com 16 funcionários, a maioria em 6x1, que abre aos domingos.
 
 ## Uso no dia a dia (Windows)

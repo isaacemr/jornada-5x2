@@ -50,7 +50,7 @@ export function empresaPadrao(): Empresa {
       },
       adicionalHoraExtra: REGRAS.clt.horaExtra.adicionalPadrao,
       adicionalDomingoFeriado: REGRAS.clt.horaExtra.adicionalDomingoFeriadoPadrao,
-      domingoFolgaACadaSemanas: REGRAS.domingos.folgaACadaSemanasPadrao,
+      domingoFolgaACadaSemanas: REGRAS.domingos.homensRegraGeral,
       encargosPercentual: null,
       acordoAmpliaJornadaEtapa1: 'nao_sei',
       acordoRegimeCompensatorio: 'nao_sei',

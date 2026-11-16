@@ -3,6 +3,7 @@
  * Limites vêm de REGRAS (via etapas.ts).
  */
 import { REGRAS } from '../config/regras-ec141';
+import { textoRegraDomingo } from './domingos';
 import { limitesDaEtapa, type NumeroEtapa } from './etapas';
 import { duracaoPeriodo, formatarDuracao, horarioValido, paraMinutos } from './tempo';
 import {
@@ -134,7 +135,8 @@ export interface OpcoesValidacao {
   acordoAmpliaDiaria: SimNaoNaoSei;
   /** Convenção/acordo coletivo prevê regime compensatório diferente da 5x2. */
   acordoRegimeCompensatorio: SimNaoNaoSei;
-  domingoFolgaACadaSemanas: number;
+  /** Regra de folga aos domingos: um número, ou a regra de cada pessoa do grupo (mulheres: 2). */
+  domingoFolgaACadaSemanas: number | number[];
   funcionamento?: Record<DiaSemana, DiaFuncionamento>;
 }
 
@@ -260,7 +262,7 @@ export function validarGrade(g: GradeSemanal, op: OpcoesValidacao): ResultadoVal
     p.push({
       codigo: 'DOMINGO',
       severidade: 'info',
-      texto: `Trabalha aos domingos: garanta pelo revezamento ao menos 1 domingo de folga a cada ${op.domingoFolgaACadaSemanas} semanas.`,
+      texto: `Trabalha aos domingos: garanta pelo revezamento ${textoRegraDomingo([op.domingoFolgaACadaSemanas].flat())}.`,
     });
   }
 

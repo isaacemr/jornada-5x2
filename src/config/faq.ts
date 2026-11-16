@@ -36,7 +36,8 @@ export const FAQ: Pergunta[] = [
     pergunta: 'Minha empresa abre aos domingos. Ainda posso funcionar?',
     resposta: [
       'Sim. A EC muda quantos dias cada pessoa trabalha, não os dias em que a empresa abre. Para manter o funcionamento, organize um revezamento: cada pessoa trabalha 5 dias e folga 2, e as folgas giram entre a equipe.',
-      `Um dos repousos deve cair preferencialmente no domingo. Este assistente usa como padrão ao menos 1 domingo de folga a cada ${REGRAS.domingos.folgaACadaSemanasPadrao} semanas (você pode mudar). No comércio, a Lei 10.101/2000 prevê ${REGRAS.domingos.referenciaComercio} semanas.`,
+      `Um dos repousos deve cair preferencialmente no domingo, e a regra muda conforme o sexo. Mulheres: revezamento quinzenal — quem trabalha num domingo folga no domingo seguinte (CLT art. 386). O TST entende que essa proteção não pode ser afastada por acordo ou convenção coletiva.`,
+      `Homens: ao menos 1 domingo de folga a cada ${REGRAS.domingos.homensComercio} semanas no comércio (Lei 10.101/2000) e a cada ${REGRAS.domingos.homensRegraGeral} semanas na regra geral das demais atividades. A convenção da categoria pode prever regra mais favorável — ajuste em Dados da empresa.`,
       'Use a calculadora de cobertura para saber quantas pessoas cada turno precisa.',
     ],
   },

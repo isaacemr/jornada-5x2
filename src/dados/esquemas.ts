@@ -49,6 +49,7 @@ export const funcionarioSchema = z.object({
   matricula: z.string().optional(),
   cargo: z.string(),
   setor: z.string(),
+  sexo: z.enum(['F', 'M']).optional(),
   salario: z.number().min(0, 'Salário não pode ser negativo'),
   jornadaSemanalContratualMin: z.number().int().min(0).max(80 * 60),
   escalaAtual: z.enum(['6x1', '5x2', '12x36', 'outra']),

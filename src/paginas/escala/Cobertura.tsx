@@ -1,9 +1,12 @@
 import { useLiveQuery } from 'dexie-react-hooks';
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import { REGRAS } from '../../config/regras-ec141';
 import { db } from '../../dados/db';
 import { agoraISO } from '../../dados/padroes';
 import { calcularCobertura, limitesParaCobertura, type ResultadoTurno } from '../../dominio/cobertura';
+import { domingoACadaSemanas, textoRegraDomingo } from '../../dominio/domingos';
+import { proporcaoMulheres } from '../../dominio/escala';
 import { divisorPara } from '../../dominio/remuneracao';
 import { formatarDuracao, formatarMoeda, formatarNumero } from '../../dominio/tempo';
 import { DIAS_SEMANA, NOME_DIA_CURTO, type CoberturaSetor, type TurnoCobertura } from '../../dominio/tipos';
@@ -48,7 +51,9 @@ export default function Cobertura() {
     return () => clearTimeout(t);
   }, [dados]);
 
-  const N = empresa?.config.domingoFolgaACadaSemanas ?? 4;
+  // Regra dos homens; a parcela de mulheres da equipe segue o revezamento quinzenal.
+  const N = empresa?.config.domingoFolgaACadaSemanas ?? REGRAS.domingos.homensRegraGeral;
+  const mulheres = proporcaoMulheres(equipe);
   const acordo = empresa?.config.acordoAmpliaJornadaEtapa1 === 'sim' && etapa === 1;
   const limites = limitesParaCobertura(etapa, acordo);
   const salarioRef = dados?.salarioReferencia ?? salarioMedio;
@@ -61,6 +66,7 @@ export default function Cobertura() {
       turnos: dados.turnos,
       limites,
       domingoFolgaACadaSemanas: N,
+      proporcaoMulheres: mulheres,
       pessoasAtuais: equipe.length,
       custo: {
         salarioReferencia: salarioRef,
@@ -70,7 +76,7 @@ export default function Cobertura() {
         adicionalDomingo: cfg?.adicionalDomingoFeriado ?? 1,
       },
     });
-  }, [dados, limites.limiteSemanalMin, limites.limiteDiarioMin, N, equipe.length, salarioRef, empresa]);
+  }, [dados, limites.limiteSemanalMin, limites.limiteDiarioMin, N, mulheres, equipe.length, salarioRef, empresa]);
 
   if (!funcionarios || !coberturas) return <Carregando />;
 
@@ -127,7 +133,8 @@ export default function Cobertura() {
             </div>
             <p className="mt-3 text-sm text-slate-700">
               Regras usadas: até {formatarDuracao(limites.limiteSemanalMin)} por semana, {formatarDuracao(limites.limiteDiarioMin)} por dia
-              {acordo ? ' (com acordo coletivo)' : ''}, 2 folgas por semana e ao menos 1 domingo de folga a cada {N} semanas.{' '}
+              {acordo ? ' (com acordo coletivo)' : ''}, 2 folgas por semana e {textoRegraDomingo([N, ...(mulheres > 0 ? [domingoACadaSemanas('F', N)] : [])])}.
+              {mulheres > 0 && mulheres < 1 && ` Equipe com ${Math.round(mulheres * 100)}% de mulheres; quem for contratado é estimado na mesma proporção.`}{' '}
               <Link to="/empresa" className="underline">
                 Alterar regra de domingos
               </Link>

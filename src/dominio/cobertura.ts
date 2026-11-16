@@ -3,6 +3,7 @@
  * quantas pessoas por turno, revezamento de folgas (com domingos), lacuna e custos.
  */
 import { REGRAS } from '../config/regras-ec141';
+import { cicloDomingos, domingoACadaSemanas as regraDaPessoa, domingosDaEquipe, textoRegraDomingo } from './domingos';
 import { limitesDaEtapa } from './etapas';
 import { arred2 } from './remuneracao';
 import { duracaoPeriodo, formatarDuracao } from './tempo';
@@ -21,6 +22,8 @@ export interface ParamsRevezamento {
   semanas: number;
   /** Ao menos 1 domingo de folga a cada N semanas. */
   domingoFolgaACadaSemanas: number;
+  /** Regra de cada pessoa, quando difere (mulheres: 2). Sem isto, todos seguem `domingoFolgaACadaSemanas`. */
+  domingoPorPessoa?: number[];
   /** Folgas por semana (padrão 2 = escala 5x2). */
   folgasPorSemana?: number;
   /** Deslocamento para variar quem folga primeiro (útil com vários turnos). */
@@ -53,6 +56,7 @@ export function gerarRevezamento(p: ParamsRevezamento): Revezamento {
   const trabalha: boolean[][][] = [];
   const cobertura: number[][] = [];
   const descoberto: number[][] = [];
+  const regra = Array.from({ length: n }, (_, i) => Math.max(1, p.domingoPorPessoa?.[i] ?? p.domingoFolgaACadaSemanas));
   const desdeDomingo = Array.from({ length: n }, () => 0);
   const historicoDomingo: boolean[][] = Array.from({ length: n }, () => []);
 
@@ -68,10 +72,20 @@ export function gerarRevezamento(p: ParamsRevezamento): Revezamento {
       }
     });
 
-    // Domingo: quem está há mais tempo sem folgar no domingo folga primeiro.
+    // Domingo: folga primeiro quem não pode mais esperar (estouraria a própria regra); depois, quem já usou
+    // a maior parte da espera permitida. Com a mesma regra para todos, é quem está há mais tempo sem folgar.
     if (dem[0] > 0) {
       const k = Math.max(0, n - dem[0]);
-      const ordem = [...Array(n).keys()].sort((a, b) => desdeDomingo[b] - desdeDomingo[a] || ((a - w * k - desl) % n + n) % n - ((b - w * k - desl) % n + n) % n);
+      const margem = (i: number) => regra[i] - 1 - desdeDomingo[i];
+      const usado = (i: number) => (regra[i] <= 1 ? Infinity : desdeDomingo[i] / (regra[i] - 1));
+      const urgente = (i: number) => (margem(i) <= 0 ? 0 : 1);
+      const ordem = [...Array(n).keys()].sort(
+        (a, b) =>
+          urgente(a) - urgente(b) ||
+          (urgente(a) === 0 ? margem(a) - margem(b) || regra[a] - regra[b] : usado(b) - usado(a)) ||
+          desdeDomingo[b] - desdeDomingo[a] ||
+          ((a - w * k - desl) % n + n) % n - ((b - w * k - desl) % n + n) % n,
+      );
       for (const i of ordem.slice(0, k)) {
         t[i][0] = false;
         folgas[i]++;
@@ -127,8 +141,7 @@ export function gerarRevezamento(p: ParamsRevezamento): Revezamento {
     }
     return maior;
   });
-  const N = p.domingoFolgaACadaSemanas;
-  const domingoOk = dem[0] === 0 || maiorEsperaDomingo.every((x) => x + 1 <= N);
+  const domingoOk = dem[0] === 0 || maiorEsperaDomingo.every((x, i) => x + 1 <= regra[i]);
 
   return {
     trabalha,
@@ -173,8 +186,16 @@ export interface ResultadoTurno {
   alertas: string[];
 }
 
-/** Menor número de pessoas que cobre o turno com o revezamento (sem vagas descobertas e respeitando domingos). */
-export function dimensionarTurno(t: TurnoCobertura, L: LimitesCobertura, domingoACadaSemanas: number): Omit<ResultadoTurno, 'pessoasAlocadas' | 'revezamento' | 'horasDescobertasSemana' | 'horasDescobertasDomingoSemana'> {
+/**
+ * Menor número de pessoas que cobre o turno com o revezamento (sem vagas descobertas e respeitando domingos).
+ * `domingoACadaSemanas` é a regra dos homens; a parcela `proporcaoMulheres` da equipe folga a cada 2 domingos.
+ */
+export function dimensionarTurno(
+  t: TurnoCobertura,
+  L: LimitesCobertura,
+  domingoACadaSemanas: number,
+  proporcaoMulheres = 0,
+): Omit<ResultadoTurno, 'pessoasAlocadas' | 'revezamento' | 'horasDescobertasSemana' | 'horasDescobertasDomingoSemana'> {
   const alertas: string[] = [];
   const dur = duracaoTrabalhadaTurno(t);
   if (dur > L.limiteDiarioMin) {
@@ -197,14 +218,25 @@ export function dimensionarTurno(t: TurnoCobertura, L: LimitesCobertura, domingo
       alertas.push('Com folga em todos os domingos não é possível manter este turno aos domingos.');
       minimoPorDomingo = dem[0];
     } else {
-      minimoPorDomingo = Math.ceil((dem[0] * domingoACadaSemanas) / (domingoACadaSemanas - 1));
+      // Cada pessoa folga, em média, 1/N domingos por semana; quem sobra precisa cobrir a demanda do domingo.
+      const pm = Math.min(1, Math.max(0, proporcaoMulheres));
+      const folgaMedia = pm / regraDaPessoa('F', domingoACadaSemanas) + (1 - pm) / domingoACadaSemanas;
+      minimoPorDomingo = Math.ceil(dem[0] / (1 - folgaMedia));
     }
   }
   let n = Math.max(minimoPorCarga, pico, minimoPorDomingo);
   if (vagas > 0) {
     // Confirma com o revezamento real (o arredondamento pode exigir mais 1 ou 2 pessoas).
     for (let tentativa = 0; tentativa < 10; tentativa++) {
-      const r = gerarRevezamento({ pessoas: n, demanda: t.demanda, semanas: Math.max(domingoACadaSemanas, 1), domingoFolgaACadaSemanas: domingoACadaSemanas, folgasPorSemana: 7 - diasPorPessoa });
+      const regras = domingosDaEquipe(n, proporcaoMulheres, domingoACadaSemanas);
+      const r = gerarRevezamento({
+        pessoas: n,
+        demanda: t.demanda,
+        semanas: cicloDomingos([domingoACadaSemanas, ...regras]),
+        domingoFolgaACadaSemanas: domingoACadaSemanas,
+        domingoPorPessoa: regras,
+        folgasPorSemana: 7 - diasPorPessoa,
+      });
       if (r.totalDescoberto === 0 && (r.domingoOk || domingoACadaSemanas <= 1)) break;
       n++;
     }
@@ -271,23 +303,29 @@ export interface ResultadoCobertura {
 export interface ParamsCalculo {
   turnos: TurnoCobertura[];
   limites: LimitesCobertura;
+  /** Regra dos homens (mulheres: a cada 2 semanas). */
   domingoFolgaACadaSemanas: number;
+  /** Parcela de mulheres na equipe do setor (0 a 1); usada também para quem ainda será contratado. */
+  proporcaoMulheres?: number;
   pessoasAtuais: number;
   custo: Omit<ParamsCusto, 'pessoasAtuais'>;
 }
 
 export function calcularCobertura(p: ParamsCalculo): ResultadoCobertura {
   const N = Math.max(1, p.domingoFolgaACadaSemanas);
-  const dims = p.turnos.map((t) => dimensionarTurno(t, p.limites, N));
+  const pm = p.proporcaoMulheres ?? 0;
+  const dims = p.turnos.map((t) => dimensionarTurno(t, p.limites, N, pm));
   const necessidades = dims.map((d) => d.pessoasNecessarias);
   const alocadas = alocarPessoas(p.pessoasAtuais, necessidades);
 
   const turnos: ResultadoTurno[] = dims.map((d, i) => {
+    const regras = domingosDaEquipe(alocadas[i], pm, N);
     const r = gerarRevezamento({
       pessoas: alocadas[i],
       demanda: d.turno.demanda,
-      semanas: N,
+      semanas: cicloDomingos([N, ...regras]),
       domingoFolgaACadaSemanas: N,
+      domingoPorPessoa: regras,
       folgasPorSemana: 7 - d.diasPorPessoa,
       deslocamento: i,
     });
@@ -295,7 +333,7 @@ export function calcularCobertura(p: ParamsCalculo): ResultadoCobertura {
     const horasDomingo = r.descoberto.reduce((s, sem) => s + sem[0], 0) / Math.max(1, r.descoberto.length);
     const alertas = [...d.alertas];
     if (alocadas[i] > 0 && !r.domingoOk && d.turno.demanda.dom > 0) {
-      alertas.push(`Com ${alocadas[i]} pessoa(s) não dá para garantir a todos 1 domingo de folga a cada ${N} semanas.`);
+      alertas.push(`Com ${alocadas[i]} pessoa(s) não dá para garantir a todos ${textoRegraDomingo(regras)}.`);
     }
     return {
       ...d,

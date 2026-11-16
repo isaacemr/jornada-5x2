@@ -4,6 +4,7 @@
  * Tarefas feitas fora do assistente (sindicato, aditivos, ponto, eSocial) são marcadas manualmente.
  */
 import { REGRAS } from '../config/regras-ec141';
+import { domingoACadaSemanas, textoRegraDomingo } from './domingos';
 import { contextoDiagnostico, diagnosticar } from './diagnostico';
 import { PORTES_PEQUENOS, type Prazos } from './etapas';
 import { formatarData, lerData, dataISO, somarDias } from './tempo';
@@ -37,7 +38,7 @@ export function gerarTarefasAuto(e: EntradaPlano): TarefaPlano[] {
   const precisamE1 = diags.filter((x) => x.d.status !== 'adequado');
   const semNovaE1 = precisamE1.filter((x) => !x.f.gradeNova);
   const precisamE2 = diags.filter((x) => !x.dv.adequadoEtapa2);
-  const N = e.empresa?.config.domingoFolgaACadaSemanas ?? REGRAS.domingos.folgaACadaSemanasPadrao;
+  const N = e.empresa?.config.domingoFolgaACadaSemanas ?? REGRAS.domingos.homensRegraGeral;
   const setores = new Set(e.funcionarios.map((f) => f.setor));
   const continua = !!e.empresa?.atividadeContinua;
   const acordoIndefinido = !e.empresa || e.empresa.config.acordoAmpliaJornadaEtapa1 === 'nao_sei' || e.empresa.config.acordoRegimeCompensatorio === 'nao_sei';
@@ -123,7 +124,7 @@ export function gerarTarefasAuto(e: EntradaPlano): TarefaPlano[] {
   add({
     id: 'auto:escalas',
     titulo: 'Montar as escalas 5x2 de cada setor',
-    descricao: `Garantir 2 folgas por semana e ao menos 1 domingo de folga a cada ${N} semanas.`,
+    descricao: `Garantir 2 folgas por semana e ${textoRegraDomingo(e.funcionarios.length ? e.funcionarios.map((f) => domingoACadaSemanas(f.sexo, N)) : [N])}.`,
     responsavel: 'Gestores',
     prazo: somarDias(E1, -15),
     etapa: 'etapa1',

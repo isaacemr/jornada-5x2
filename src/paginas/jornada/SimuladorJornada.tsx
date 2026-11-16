@@ -1,8 +1,10 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
+import { REGRAS } from '../../config/regras-ec141';
 import { db } from '../../dados/db';
 import { agoraISO } from '../../dados/padroes';
 import { contextoDiagnostico, diagnosticar } from '../../dominio/diagnostico';
+import { domingoACadaSemanas } from '../../dominio/domingos';
 import { validarGrade } from '../../dominio/jornada';
 import { gerarOpcoes, sugerirDiasTrabalho, type ClassificacaoOpcao } from '../../dominio/redistribuicao';
 import { compararRemuneracao, configRemuneracaoPadrao } from '../../dominio/remuneracao';
@@ -62,10 +64,13 @@ export default function SimuladorJornada() {
     () => ({
       acordoAmpliaDiaria: empresa?.config.acordoAmpliaJornadaEtapa1 ?? ('nao_sei' as const),
       acordoRegimeCompensatorio: empresa?.config.acordoRegimeCompensatorio ?? ('nao_sei' as const),
-      domingoFolgaACadaSemanas: empresa?.config.domingoFolgaACadaSemanas ?? 4,
+      // A regra de domingos de cada pessoa selecionada (mulheres: quinzenal).
+      domingoFolgaACadaSemanas: (selecionados.length ? selecionados : [{ sexo: undefined }]).map((f) =>
+        domingoACadaSemanas(f.sexo, empresa?.config.domingoFolgaACadaSemanas ?? REGRAS.domingos.homensRegraGeral),
+      ),
       funcionamento: empresa?.funcionamento,
     }),
-    [empresa],
+    [empresa, selecionados],
   );
 
   const opcoes = useMemo(() => gerarOpcoes({ etapa, entrada, diasTrabalho: dias, validacao: opcValidacao }), [etapa, entrada, dias, opcValidacao]);

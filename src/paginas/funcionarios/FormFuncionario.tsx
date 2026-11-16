@@ -1,12 +1,14 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
+import { REGRAS } from '../../config/regras-ec141';
 import { db } from '../../dados/db';
 import { funcionarioSchema, mensagensDeErro } from '../../dados/esquemas';
 import { agoraISO, gradeUniforme, novoId } from '../../dados/padroes';
 import { contextoDiagnostico, diagnosticar } from '../../dominio/diagnostico';
+import { domingoACadaSemanas } from '../../dominio/domingos';
 import { descreverGrade, validarGrade } from '../../dominio/jornada';
 import { formatarData, formatarDuracao, formatarNumero, lerDuracao, lerMoeda } from '../../dominio/tempo';
-import type { Escala, Funcionario } from '../../dominio/tipos';
+import type { Escala, Funcionario, Sexo } from '../../dominio/tipos';
 import { useContexto, useFuncionarios } from '../../hooks/useDados';
 import { EditorGradeSemanal } from '../../componentes/GradeSemanal';
 import { DiagnosticoDetalhe } from '../../componentes/DiagnosticoDetalhe';
@@ -76,7 +78,7 @@ export default function FormFuncionario() {
             etapa: etapaHoje,
             acordoAmpliaDiaria: empresa?.config.acordoAmpliaJornadaEtapa1 ?? 'nao_sei',
             acordoRegimeCompensatorio: empresa?.config.acordoRegimeCompensatorio ?? 'nao_sei',
-            domingoFolgaACadaSemanas: empresa?.config.domingoFolgaACadaSemanas ?? 4,
+            domingoFolgaACadaSemanas: domingoACadaSemanas(f.sexo, empresa?.config.domingoFolgaACadaSemanas ?? REGRAS.domingos.homensRegraGeral),
           })
         : undefined,
     [f, etapaHoje, empresa],
@@ -101,6 +103,7 @@ export default function FormFuncionario() {
     if (salario === null) problemas.push('Salário: informe um valor (ex.: 1.850,00).');
     const jornada = lerDuracao(jornadaTxt);
     if (jornada === null) problemas.push('Jornada semanal: informe as horas (ex.: 44 ou 44h).');
+    if (!f!.sexo) problemas.push('Sexo: informe para aplicar a regra certa de folga aos domingos.');
     const dados: Funcionario = {
       ...f!,
       nome: f!.nome.trim(),
@@ -150,6 +153,17 @@ export default function FormFuncionario() {
             <div className="grid gap-4 sm:grid-cols-2">
               <CampoTexto rotulo="Nome completo *" required value={f.nome} onChange={(e) => set('nome', e.target.value)} autoComplete="off" />
               <CampoTexto rotulo="Matrícula" value={f.matricula ?? ''} onChange={(e) => set('matricula', e.target.value || undefined)} />
+              <CampoSelect
+                rotulo="Sexo *"
+                value={f.sexo ?? ''}
+                onChange={(e) => set('sexo', (e.target.value || undefined) as Sexo | undefined)}
+                opcoes={[
+                  { valor: '', texto: 'Selecione' },
+                  { valor: 'F', texto: 'Feminino' },
+                  { valor: 'M', texto: 'Masculino' },
+                ]}
+                dica={`Muda a folga aos domingos: mulheres folgam a cada ${REGRAS.domingos.mulheres} domingos (CLT art. 386).`}
+              />
               <CampoTexto rotulo="Cargo" value={f.cargo} onChange={(e) => set('cargo', e.target.value)} />
               <div>
                 <CampoTexto rotulo="Setor" list="lista-setores" value={f.setor} onChange={(e) => set('setor', e.target.value)} />

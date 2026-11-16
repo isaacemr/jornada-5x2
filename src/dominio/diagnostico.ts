@@ -2,6 +2,7 @@
  * Diagnóstico automático de cada funcionário frente às etapas da EC 141/2026.
  */
 import { REGRAS } from '../config/regras-ec141';
+import { domingoACadaSemanas, textoRegraDomingo } from './domingos';
 import { limitesDaEtapa, type Prazos } from './etapas';
 import { problemasCLT, resumirGrade, type ResumoGrade } from './jornada';
 import { formatarData, formatarDuracao } from './tempo';
@@ -219,11 +220,22 @@ export function diagnosticar(f: Funcionario, ctx: ContextoDiagnostico, base?: 'a
     }
   }
   if (resumo.trabalhaDomingo) {
+    const n = domingoACadaSemanas(f.sexo, ctx.config.domingoFolgaACadaSemanas);
     motivos.push({
       codigo: 'DOMINGO',
       severidade: 'info',
-      texto: `Trabalha aos domingos: o revezamento deve garantir ao menos 1 domingo de folga a cada ${ctx.config.domingoFolgaACadaSemanas} semanas.`,
+      texto:
+        f.sexo === 'F'
+          ? `Trabalha aos domingos: por ser mulher, o revezamento deve ser quinzenal — ${textoRegraDomingo([n])}. Regra da CLT art. 386, que acordo coletivo não pode afastar.`
+          : `Trabalha aos domingos: o revezamento deve garantir ${textoRegraDomingo([n])}.`,
     });
+    if (!f.sexo) {
+      motivos.push({
+        codigo: 'SEXO_NAO_INFORMADO',
+        severidade: 'aviso',
+        texto: `Sexo não informado no cadastro: foi usada a regra dos homens. Para mulheres, a regra é ${textoRegraDomingo([REGRAS.domingos.mulheres])} (CLT art. 386).`,
+      });
+    }
   }
 
   return {
@@ -274,7 +286,7 @@ export function contextoDiagnostico(prazos: Prazos, config?: ConfigEmpresa | nul
     config: {
       acordoAmpliaJornadaEtapa1: config?.acordoAmpliaJornadaEtapa1 ?? 'nao_sei',
       acordoRegimeCompensatorio: config?.acordoRegimeCompensatorio ?? 'nao_sei',
-      domingoFolgaACadaSemanas: config?.domingoFolgaACadaSemanas ?? REGRAS.domingos.folgaACadaSemanasPadrao,
+      domingoFolgaACadaSemanas: config?.domingoFolgaACadaSemanas ?? REGRAS.domingos.homensRegraGeral,
     },
   };
 }

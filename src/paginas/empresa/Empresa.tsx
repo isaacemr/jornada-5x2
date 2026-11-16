@@ -3,6 +3,7 @@ import { REGRAS } from '../../config/regras-ec141';
 import { db } from '../../dados/db';
 import { empresaSchema, mensagensDeErro } from '../../dados/esquemas';
 import { agoraISO, empresaPadrao } from '../../dados/padroes';
+import { regraHomensPorRamo } from '../../dominio/domingos';
 import { PORTES_PEQUENOS } from '../../dominio/etapas';
 import { formatarData } from '../../dominio/tempo';
 import { DIAS_SEMANA, NOME_DIA, type Empresa as TEmpresa, type SimNaoNaoSei } from '../../dominio/tipos';
@@ -96,7 +97,22 @@ export default function Empresa() {
                 { valor: 'DEMAIS', texto: 'Demais (média ou grande)' },
               ]}
             />
-            <CampoTexto rotulo="Ramo de atividade" placeholder="Ex.: comércio varejista, restaurante, clínica" value={form.ramo} onChange={(e) => set('ramo', e.target.value)} />
+            <CampoTexto
+              rotulo="Ramo de atividade"
+              placeholder="Ex.: comércio varejista, restaurante, clínica"
+              value={form.ramo}
+              onChange={(e) => {
+                const ramo = e.target.value;
+                // Se a regra de domingos dos homens ainda é a sugerida pelo ramo antigo, acompanha o novo ramo.
+                const seguir = form.config.domingoFolgaACadaSemanas === regraHomensPorRamo(form.ramo);
+                setForm({
+                  ...form,
+                  ramo,
+                  config: seguir ? { ...form.config, domingoFolgaACadaSemanas: regraHomensPorRamo(ramo) } : form.config,
+                });
+                setSalvo(false);
+              }}
+            />
             <CampoTexto rotulo="Responsável pelo departamento pessoal" value={form.responsavelDP} onChange={(e) => set('responsavelDP', e.target.value)} />
           </div>
           <div className="mt-4 grid gap-4 md:grid-cols-2">
@@ -240,14 +256,29 @@ export default function Empresa() {
               onChange={(e) => setConfig('encargosPercentual', lerPercentual(e.target.value))}
               dica="Usado para estimar o custo de contratar. Varia com o regime tributário."
             />
+          </div>
+        </Cartao>
+
+        <Cartao titulo="Folga aos domingos" descricao="Quem trabalha aos domingos precisa folgar em alguns deles. A regra é diferente para mulheres e homens.">
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div>
+              <p className="mb-1 text-sm font-medium">Mulheres: ao menos 1 a cada quantas semanas?</p>
+              <p className="campo-input flex items-center bg-slate-100 text-slate-800" aria-describedby="dica-domingo-mulheres">
+                {REGRAS.domingos.mulheres} (domingo sim, domingo não)
+              </p>
+              <p id="dica-domingo-mulheres" className="mt-1 text-sm text-slate-700">
+                Fixo. CLT art. 386: revezamento quinzenal — quem trabalha num domingo folga no seguinte. O TST entende que não pode ser afastado por
+                acordo ou convenção coletiva.
+              </p>
+            </div>
             <CampoTexto
-              rotulo="Folga aos domingos: ao menos 1 a cada quantas semanas?"
+              rotulo="Homens: ao menos 1 a cada quantas semanas?"
               type="number"
               min={1}
               max={52}
               value={form.config.domingoFolgaACadaSemanas}
               onChange={(e) => setConfig('domingoFolgaACadaSemanas', Math.max(1, Math.round(Number(e.target.value) || 1)))}
-              dica={`Padrão da ferramenta: ${REGRAS.domingos.folgaACadaSemanasPadrao}. No comércio, a Lei 10.101/2000 prevê ${REGRAS.domingos.referenciaComercio}.`}
+              dica={`Comércio: ${REGRAS.domingos.homensComercio} (Lei 10.101/2000, art. 6º). Demais atividades: ${REGRAS.domingos.homensRegraGeral} (regra geral). Sugerido pelo ramo de atividade; use o da convenção se for mais favorável.`}
             />
           </div>
         </Cartao>

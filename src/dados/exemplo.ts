@@ -10,6 +10,7 @@ import {
   type Empresa,
   type Funcionario,
   type GradeSemanal,
+  type Sexo,
 } from '../dominio/tipos';
 import { type BancoJornada, db as dbPadrao } from './db';
 import { agoraISO, empresaPadrao, gradeVazia } from './padroes';
@@ -40,6 +41,7 @@ const DOMINGO: Periodo = ['08:00', '14:00', 15];
 
 interface Base {
   nome: string;
+  sexo: Sexo;
   cargo: string;
   setor: string;
   salario: number;
@@ -51,28 +53,28 @@ interface Base {
 
 const PESSOAS: Base[] = [
   // Caixa
-  { nome: 'Ana Paula Ribeiro', cargo: 'Operadora de caixa', setor: 'Caixa', salario: 1850, escala: '6x1', grade: grade(MANHA, ['qua'], DOMINGO), admissao: '2021-03-08' },
-  { nome: 'Bruno Henrique Costa', cargo: 'Operador de caixa', setor: 'Caixa', salario: 1850, escala: '6x1', grade: grade(TARDE, ['seg'], DOMINGO), admissao: '2022-07-01' },
-  { nome: 'Carla Mendes', cargo: 'Operadora de caixa', setor: 'Caixa', salario: 1850, escala: '6x1', grade: grade(MANHA, ['dom']), admissao: '2019-11-18' },
-  { nome: 'Diego Santos', cargo: 'Operador de caixa', setor: 'Caixa', salario: 1900, escala: '6x1', grade: grade(TARDE, ['sex'], DOMINGO), admissao: '2023-02-13' },
-  { nome: 'Elaine Ferreira', cargo: 'Fiscal de caixa', setor: 'Caixa', salario: 2400, escala: '6x1', grade: grade(TARDE, ['dom']), admissao: '2018-05-02' },
+  { nome: 'Ana Paula Ribeiro', sexo: 'F', cargo: 'Operadora de caixa', setor: 'Caixa', salario: 1850, escala: '6x1', grade: grade(MANHA, ['qua'], DOMINGO), admissao: '2021-03-08' },
+  { nome: 'Bruno Henrique Costa', sexo: 'M', cargo: 'Operador de caixa', setor: 'Caixa', salario: 1850, escala: '6x1', grade: grade(TARDE, ['seg'], DOMINGO), admissao: '2022-07-01' },
+  { nome: 'Carla Mendes', sexo: 'F', cargo: 'Operadora de caixa', setor: 'Caixa', salario: 1850, escala: '6x1', grade: grade(MANHA, ['dom']), admissao: '2019-11-18' },
+  { nome: 'Diego Santos', sexo: 'M', cargo: 'Operador de caixa', setor: 'Caixa', salario: 1900, escala: '6x1', grade: grade(TARDE, ['sex'], DOMINGO), admissao: '2023-02-13' },
+  { nome: 'Elaine Ferreira', sexo: 'F', cargo: 'Fiscal de caixa', setor: 'Caixa', salario: 2400, escala: '6x1', grade: grade(TARDE, ['dom']), admissao: '2018-05-02' },
   // Reposição
-  { nome: 'Fábio Almeida', cargo: 'Repositor', setor: 'Reposição', salario: 1750, escala: '6x1', grade: grade(REPOSICAO, ['ter'], ['07:00', '13:00', 15]), admissao: '2022-01-10' },
-  { nome: 'Gabriela Lima', cargo: 'Repositora', setor: 'Reposição', salario: 1750, escala: '6x1', grade: grade(REPOSICAO, ['dom']), admissao: '2020-09-21' },
-  { nome: 'Henrique Oliveira', cargo: 'Repositor', setor: 'Reposição', salario: 1750, escala: '6x1', grade: grade(REPOSICAO, ['qui'], ['07:00', '13:00', 15]), admissao: '2024-04-01' },
-  { nome: 'Isabela Rocha', cargo: 'Repositora', setor: 'Reposição', salario: 1800, escala: '6x1', grade: grade(REPOSICAO, ['dom']), admissao: '2021-08-16' },
+  { nome: 'Fábio Almeida', sexo: 'M', cargo: 'Repositor', setor: 'Reposição', salario: 1750, escala: '6x1', grade: grade(REPOSICAO, ['ter'], ['07:00', '13:00', 15]), admissao: '2022-01-10' },
+  { nome: 'Gabriela Lima', sexo: 'F', cargo: 'Repositora', setor: 'Reposição', salario: 1750, escala: '6x1', grade: grade(REPOSICAO, ['dom']), admissao: '2020-09-21' },
+  { nome: 'Henrique Oliveira', sexo: 'M', cargo: 'Repositor', setor: 'Reposição', salario: 1750, escala: '6x1', grade: grade(REPOSICAO, ['qui'], ['07:00', '13:00', 15]), admissao: '2024-04-01' },
+  { nome: 'Isabela Rocha', sexo: 'F', cargo: 'Repositora', setor: 'Reposição', salario: 1800, escala: '6x1', grade: grade(REPOSICAO, ['dom']), admissao: '2021-08-16' },
   // Açougue
-  { nome: 'João Batista Pereira', cargo: 'Açougueiro', setor: 'Açougue', salario: 2600, escala: '6x1', grade: grade(MANHA, ['seg'], ['07:00', '13:00', 15]), admissao: '2017-06-05' },
-  { nome: 'Kátia Souza', cargo: 'Auxiliar de açougue', setor: 'Açougue', salario: 1900, escala: '6x1', grade: grade(MANHA, ['dom']), admissao: '2023-10-09' },
+  { nome: 'João Batista Pereira', sexo: 'M', cargo: 'Açougueiro', setor: 'Açougue', salario: 2600, escala: '6x1', grade: grade(MANHA, ['seg'], ['07:00', '13:00', 15]), admissao: '2017-06-05' },
+  { nome: 'Kátia Souza', sexo: 'F', cargo: 'Auxiliar de açougue', setor: 'Açougue', salario: 1900, escala: '6x1', grade: grade(MANHA, ['dom']), admissao: '2023-10-09' },
   // Padaria
-  { nome: 'Luiz Carlos Nunes', cargo: 'Padeiro', setor: 'Padaria', salario: 2300, escala: '6x1', grade: grade(['04:00', '12:20', 60], ['qua'], ['04:00', '10:00', 15]), admissao: '2016-02-01' },
-  { nome: 'Marina Teixeira', cargo: 'Confeiteira', setor: 'Padaria', salario: 2100, escala: '6x1', grade: grade(['05:00', '13:20', 60], ['dom']), admissao: '2022-11-07' },
+  { nome: 'Luiz Carlos Nunes', sexo: 'M', cargo: 'Padeiro', setor: 'Padaria', salario: 2300, escala: '6x1', grade: grade(['04:00', '12:20', 60], ['qua'], ['04:00', '10:00', 15]), admissao: '2016-02-01' },
+  { nome: 'Marina Teixeira', sexo: 'F', cargo: 'Confeiteira', setor: 'Padaria', salario: 2100, escala: '6x1', grade: grade(['05:00', '13:20', 60], ['dom']), admissao: '2022-11-07' },
   // Administrativo
-  { nome: 'Natália Gomes', cargo: 'Auxiliar administrativa', setor: 'Administrativo', salario: 2500, escala: '5x2', grade: grade(['08:00', '17:48', 60], ['sab', 'dom']), admissao: '2021-01-04' },
-  { nome: 'Paula Cristina Dias', cargo: 'Gerente administrativa', setor: 'Administrativo', salario: 5200, escala: '5x2', grade: grade(['08:00', '17:00', 60], ['sab', 'dom']), semanalMin: h(40), admissao: '2015-03-02' },
+  { nome: 'Natália Gomes', sexo: 'F', cargo: 'Auxiliar administrativa', setor: 'Administrativo', salario: 2500, escala: '5x2', grade: grade(['08:00', '17:48', 60], ['sab', 'dom']), admissao: '2021-01-04' },
+  { nome: 'Paula Cristina Dias', sexo: 'F', cargo: 'Gerente administrativa', setor: 'Administrativo', salario: 5200, escala: '5x2', grade: grade(['08:00', '17:00', 60], ['sab', 'dom']), semanalMin: h(40), admissao: '2015-03-02' },
   // Segurança
   {
-    nome: 'Otávio Martins', cargo: 'Vigia noturno', setor: 'Segurança', salario: 2200, escala: '12x36',
+    nome: 'Otávio Martins', sexo: 'M', cargo: 'Vigia noturno', setor: 'Segurança', salario: 2200, escala: '12x36',
     grade: grade(['19:00', '07:00', 60], ['ter', 'qui', 'sab', 'dom']), semanalMin: REGRAS.clt.regime12x36.mediaSemanalMin, admissao: '2020-02-17',
   },
 ];
@@ -85,6 +87,7 @@ export function funcionariosExemplo(): Funcionario[] {
     matricula: String(1001 + i),
     cargo: p.cargo,
     setor: p.setor,
+    sexo: p.sexo,
     salario: p.salario,
     jornadaSemanalContratualMin: p.semanalMin ?? h(44),
     escalaAtual: p.escala,
@@ -113,7 +116,12 @@ export function empresaExemplo(): Empresa {
     convencaoAplicavel: 'CCT Comerciários 2026/2027',
     responsavelDP: 'Paula Cristina Dias',
     funcionamento: func,
-    config: { ...e.config, acordoAmpliaJornadaEtapa1: 'nao_sei', acordoRegimeCompensatorio: 'nao_sei' },
+    config: {
+      ...e.config,
+      domingoFolgaACadaSemanas: REGRAS.domingos.homensComercio,
+      acordoAmpliaJornadaEtapa1: 'nao_sei',
+      acordoRegimeCompensatorio: 'nao_sei',
+    },
   };
 }
 

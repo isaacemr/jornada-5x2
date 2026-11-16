@@ -158,14 +158,25 @@ export const REGRAS = {
     confirmarNoTextoOficial: false,
   },
 
-  /** Repouso aos domingos — padrão da ferramenta (configurável por empresa). */
+  /**
+   * Repouso aos domingos: ao menos 1 domingo de folga a cada N semanas.
+   * A regra é diferente para mulheres e homens.
+   */
   domingos: {
-    /** Ao menos 1 domingo de folga a cada N semanas. */
-    folgaACadaSemanasPadrao: 4,
-    /** Referência: comércio em geral — Lei 10.101/2000, art. 6º, parágrafo único (1 a cada 3 semanas). */
-    referenciaComercio: 3,
-    fonte: 'Padrão da ferramenta; comércio: Lei 10.101/2000 art. 6º; CLT art. 386 (mulheres: quinzenal)',
-    confirmarNoTextoOficial: false,
+    /**
+     * Homens — regra geral das atividades autorizadas a funcionar aos domingos: 1 domingo a cada 7 semanas.
+     * Fonte: Portaria MTb 417/1966 (consolidada na Portaria MTP 671/2021); Lei 605/1949; CLT art. 67.
+     */
+    homensRegraGeral: 7,
+    /** Homens — comércio em geral: 1 domingo a cada 3 semanas. Lei 10.101/2000, art. 6º, parágrafo único. */
+    homensComercio: 3,
+    /**
+     * Mulheres — CLT art. 386: escala de revezamento quinzenal (quem trabalha num domingo folga no seguinte).
+     * O TST entende que é norma de proteção à saúde e não pode ser suprimida por acordo ou convenção coletiva.
+     */
+    mulheres: 2,
+    fonte: 'CLT arts. 67 e 386; Lei 605/1949; Lei 10.101/2000 art. 6º; Portaria MTP 671/2021',
+    confirmarNoTextoOficial: true,
   },
 
   /** Regras da CLT que continuam valendo e são usadas nas validações. */

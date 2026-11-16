@@ -10,7 +10,7 @@ import Papa from 'papaparse';
 import { intervaloPresumido } from '../dominio/jornada';
 import { carregarExcelJS } from '../exportacao/exceljs';
 import { duracaoPeriodo, horarioValido, lerDuracao, lerMoeda } from '../dominio/tempo';
-import { DIAS_SEMANA, type DiaSemana, type Escala, type Funcionario, type GradeSemanal } from '../dominio/tipos';
+import { DIAS_SEMANA, type DiaSemana, type Escala, type Funcionario, type GradeSemanal, type Sexo } from '../dominio/tipos';
 import { funcionarioSchema, mensagensDeErro } from './esquemas';
 import { agoraISO, diaFolga, gradeVazia, novoId } from './padroes';
 
@@ -21,6 +21,7 @@ export const COLUNAS_MODELO = [
   'matricula',
   'cargo',
   'setor',
+  'sexo',
   'salario',
   'jornada_semanal',
   'escala',
@@ -36,8 +37,8 @@ export const COLUNAS_MODELO = [
 ] as const;
 
 export const LINHAS_MODELO: Record<(typeof COLUNAS_MODELO)[number], string>[] = [
-  { nome: 'Maria da Silva (exemplo)', matricula: '101', cargo: 'Operadora de caixa', setor: 'Caixa', salario: '1.850,00', jornada_semanal: '44', escala: '6x1', intervalo_min: '60', dom: '08:00-14:00/15', seg: '07:00-15:20', ter: '07:00-15:20', qua: 'folga', qui: '07:00-15:20', sex: '07:00-15:20', sab: '07:00-15:20', admissao: '15/03/2021' },
-  { nome: 'João Souza (exemplo)', matricula: '102', cargo: 'Auxiliar administrativo', setor: 'Administrativo', salario: '2500', jornada_semanal: '44', escala: '5x2', intervalo_min: '60', dom: '', seg: '08:00-17:48', ter: '08:00-17:48', qua: '08:00-17:48', qui: '08:00-17:48', sex: '08:00-17:48', sab: '', admissao: '04/01/2022' },
+  { nome: 'Maria da Silva (exemplo)', matricula: '101', cargo: 'Operadora de caixa', setor: 'Caixa', sexo: 'F', salario: '1.850,00', jornada_semanal: '44', escala: '6x1', intervalo_min: '60', dom: '08:00-14:00/15', seg: '07:00-15:20', ter: '07:00-15:20', qua: 'folga', qui: '07:00-15:20', sex: '07:00-15:20', sab: '07:00-15:20', admissao: '15/03/2021' },
+  { nome: 'João Souza (exemplo)', matricula: '102', cargo: 'Auxiliar administrativo', setor: 'Administrativo', sexo: 'M', salario: '2500', jornada_semanal: '44', escala: '5x2', intervalo_min: '60', dom: '', seg: '08:00-17:48', ter: '08:00-17:48', qua: '08:00-17:48', qui: '08:00-17:48', sex: '08:00-17:48', sab: '', admissao: '04/01/2022' },
 ];
 
 export interface ErroLinha {
@@ -74,6 +75,7 @@ const SINONIMOS: Record<string, string> = {
   carga_horaria: 'jornada_semanal',
   carga_horaria_semanal: 'jornada_semanal',
   escala_atual: 'escala',
+  genero: 'sexo',
   intervalo: 'intervalo_min',
   domingo: 'dom',
   segunda: 'seg',
@@ -107,6 +109,15 @@ export function lerPeriodoDia(
   const saida = pad(m[2]);
   if (!horarioValido(entrada) || !horarioValido(saida)) return 'invalido';
   return { entrada, saida, intervaloMin: m[3] !== undefined ? Number(m[3]) : intervaloPadrao };
+}
+
+/** "F", "feminino", "mulher" → F; "M", "masculino", "homem" → M; vazio → não informado. */
+export function lerSexo(v: string): Sexo | undefined | 'invalido' {
+  const t = v.normalize('NFD').replace(/[̀-ͯ]/g, '').trim().toLowerCase();
+  if (!t) return undefined;
+  if (['f', 'fem', 'feminino', 'mulher'].includes(t)) return 'F';
+  if (['m', 'masc', 'masculino', 'homem'].includes(t)) return 'M';
+  return 'invalido';
 }
 
 function lerEscala(v: string): Escala | null {
@@ -187,6 +198,10 @@ export function converterLinhas(linhas: LinhaBruta[], primeiraLinha = 2): Result
 
     const escala = lerEscala(texto(r.escala)) ?? (diasTrab === 6 ? '6x1' : diasTrab === 5 ? '5x2' : 'outra');
 
+    const sexo = lerSexo(texto(r.sexo));
+    if (sexo === 'invalido') e.push(`Sexo inválido: "${texto(r.sexo)}". Use F ou M.`);
+    else if (!sexo && grade.dom.trabalha) a.push('Sexo não informado — complete no cadastro: para mulheres a folga aos domingos é quinzenal.');
+
     if (e.length) {
       erros.push({ linha, nome: nome || '(sem nome)', erros: e });
       return;
@@ -199,6 +214,7 @@ export function converterLinhas(linhas: LinhaBruta[], primeiraLinha = 2): Result
       cpf: texto(r.cpf) || undefined,
       cargo: texto(r.cargo),
       setor: texto(r.setor) || 'Geral',
+      sexo: sexo === 'invalido' ? undefined : sexo,
       salario: salario!,
       jornadaSemanalContratualMin: jornada,
       escalaAtual: escala,
