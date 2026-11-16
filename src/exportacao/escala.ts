@@ -15,10 +15,12 @@ export interface TabelaEscala {
   legenda: { sigla: string; descricao: string; indice: number }[];
 }
 
-/** Sigla curta do turno para caber na célula (primeiras letras). */
+/** Sigla curta do turno para caber na célula (primeiras letras); turnos sem nome próprio aparecem como "Turno N". */
 export function siglaTurno(nome: string, indice: number): string {
+  const generico = nome.trim().match(/^(novo\s+)?turno(?:\s+(\d+))?$/i);
+  if (generico) return generico[1] ? `Turno ${indice + 1}` : generico[2] ? `Turno ${generico[2]}` : 'Turno';
   const s = nome.trim().slice(0, 3).toUpperCase();
-  return s || `T${indice + 1}`;
+  return s || `Turno ${indice + 1}`;
 }
 
 /** Siglas únicas para cada turno (acrescenta número em caso de repetição). */
@@ -27,7 +29,8 @@ export function siglasUnicas(nomes: string[]): string[] {
   return nomes.map((n, i) => {
     let s = siglaTurno(n, i);
     let k = 2;
-    while (usadas.has(s)) s = `${siglaTurno(n, i).slice(0, 2)}${k++}`;
+    const base = siglaTurno(n, i);
+    while (usadas.has(s)) s = base.startsWith('Turno') ? `${base}-${k++}` : `${base.slice(0, 2)}${k++}`;
     usadas.add(s);
     return s;
   });

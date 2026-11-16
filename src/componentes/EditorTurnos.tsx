@@ -17,9 +17,17 @@ export const corTurno = (i: number) => CORES_TURNO[i % CORES_TURNO.length];
 export function novoTurno(comDemanda: true): TurnoCobertura;
 export function novoTurno(comDemanda: false): TurnoBase;
 export function novoTurno(comDemanda: boolean): TurnoBase | TurnoCobertura {
-  const base: TurnoBase = { id: novoId(), nome: 'Novo turno', inicio: '08:00', fim: '17:00', intervaloMin: 60 };
+  const base: TurnoBase = { id: novoId(), nome: 'Turno 1', inicio: '08:00', fim: '17:00', intervaloMin: 60 };
   if (!comDemanda) return base;
   return { ...base, demanda: Object.fromEntries(DIAS_SEMANA.map((d) => [d, d === 'dom' ? 0 : 1])) as Record<DiaSemana, number> };
+}
+
+/** "Turno N" com o primeiro número ainda não usado na lista. */
+export function nomeNovoTurno(turnos: TurnoBase[]): string {
+  const usados = new Set(turnos.map((t) => t.nome.trim().toLowerCase()));
+  let n = turnos.length + 1;
+  while (usados.has(`turno ${n}`)) n++;
+  return `Turno ${n}`;
 }
 
 interface Props<T extends TurnoBase> {
@@ -98,7 +106,7 @@ export function EditorTurnos<T extends TurnoBase>({ turnos, onChange, comDemanda
           </fieldset>
         );
       })}
-      <Botao variante="secundario" tamanho="pequeno" onClick={() => onChange([...turnos, criar()])}>
+      <Botao variante="secundario" tamanho="pequeno" onClick={() => onChange([...turnos, { ...criar(), nome: nomeNovoTurno(turnos) }])}>
         + Adicionar turno
       </Botao>
     </div>

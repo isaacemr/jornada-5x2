@@ -36,6 +36,12 @@ describe('tabela da escala', () => {
   it('gera siglas únicas', () => {
     expect(siglasUnicas(['Manhã', 'Manhã 2', 'F'])).toEqual(['MAN', 'MA2', 'F2']);
   });
+
+  it('turnos sem nome próprio aparecem como "Turno", não "NOV"', () => {
+    expect(siglasUnicas(['Novo turno'])).toEqual(['Turno 1']);
+    expect(siglasUnicas(['Turno 1', 'Turno 2', 'Novo turno'])).toEqual(['Turno 1', 'Turno 2', 'Turno 3']);
+    expect(siglasUnicas(['Turno', 'turno'])).toEqual(['Turno', 'Turno-2']);
+  });
 });
 
 describe('arquivos', () => {
