@@ -8,7 +8,7 @@ import {
   gerarRevezamento,
   limitesParaCobertura,
 } from './cobertura';
-import { contarCobertura, domingoDaSemana, rotulosColunas, sugerirEscala, validarLinha } from './escala';
+import { agruparPorTurno, contarCobertura, domingoDaSemana, rotulosColunas, sugerirEscala, validarLinha } from './escala';
 import { FOLGA, type DiaSemana, type TurnoCobertura } from './tipos';
 
 const dem = (semana: number, sab: number, dom: number): Record<DiaSemana, number> => ({ dom, seg: semana, ter: semana, qua: semana, qui: semana, sex: semana, sab });
@@ -154,6 +154,28 @@ describe('montador de escala', () => {
     expect(contarCobertura([{ celulas: [M, FOLGA] }, { celulas: [M, M] }], M, 2)).toEqual([2, 1]);
     expect(rotulosColunas('2026-12-13', 1)[0]).toBe('Dom 13/12');
     expect(domingoDaSemana('2026-12-16')).toBe('2026-12-13');
+  });
+
+  it('agrupa as pessoas pelo turno em que mais trabalham na semana', () => {
+    const manha = { id: 'm', nome: 'Manhã', inicio: '07:00', fim: '15:00', intervaloMin: 60 };
+    const tarde = { id: 't', nome: 'Tarde', inicio: '13:00', fim: '21:00', intervaloMin: 60 };
+    const F = FOLGA;
+    const linhas = [
+      { celulas: [F, 't', 't', 't', 'm', 'm', F, /* semana 2 */ 'm', 'm', 'm', 'm', 'm', F, F] },
+      { celulas: [F, 'm', 'm', 'm', 'm', 'm', F, /* semana 2 */ F, F, F, F, F, F, F] },
+      { celulas: [F, 'm', 'm', 't', 't', F, F, /* semana 2 */ 't', 't', 't', 't', 't', F, F] },
+    ];
+    const s1 = agruparPorTurno(linhas, [manha, tarde], 0);
+    expect(s1.map((g) => [g.turno?.nome, g.itens.map((i) => i.li)])).toEqual([
+      ['Manhã', [1, 2]], // empate 2×2 vai para o turno que vem primeiro
+      ['Tarde', [0]],
+    ]);
+    const s2 = agruparPorTurno(linhas, [manha, tarde], 1);
+    expect(s2.map((g) => [g.turno?.nome ?? 'folga', g.itens.map((i) => i.li)])).toEqual([
+      ['Manhã', [0]],
+      ['Tarde', [2]],
+      ['folga', [1]],
+    ]);
   });
 
   it('sugere escala para o setor Caixa do exemplo sem erros de folga', () => {

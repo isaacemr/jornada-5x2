@@ -155,3 +155,19 @@ export function sugerirEscala(
   const ordem = new Map(funcionarios.map((f, i) => [f.id, i]));
   return resultado.sort((a, b) => (ordem.get(a.funcionarioId) ?? 0) - (ordem.get(b.funcionarioId) ?? 0));
 }
+
+/**
+ * Agrupa as linhas da semana pelo turno em que cada pessoa mais trabalha (empate: o turno que vem primeiro).
+ * Quem folga a semana toda fica num grupo à parte. Guarda o índice original da linha para edição e arraste.
+ */
+export function agruparPorTurno<L extends { celulas: CelulaEscala[] }>(linhas: L[], turnos: TurnoBase[], semana: number) {
+  const grupos = turnos.map((turno, indice) => ({ turno: turno as TurnoBase | null, indice, itens: [] as { l: L; li: number }[] }));
+  const semTurno = { turno: null as TurnoBase | null, indice: -1, itens: [] as { l: L; li: number }[] };
+  linhas.forEach((l, li) => {
+    const dias = l.celulas.slice(semana * 7, semana * 7 + 7);
+    const cont = turnos.map((t) => dias.filter((c) => c === t.id).length);
+    const max = Math.max(0, ...cont);
+    (max === 0 ? semTurno : grupos[cont.indexOf(max)]).itens.push({ l, li });
+  });
+  return [...grupos, semTurno].filter((g) => g.itens.length > 0);
+}

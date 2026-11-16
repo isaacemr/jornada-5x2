@@ -5,7 +5,7 @@ import { Link, useSearchParams } from 'react-router-dom';
 import { db } from '../../dados/db';
 import { agoraISO } from '../../dados/padroes';
 import { limitesParaCobertura } from '../../dominio/cobertura';
-import { contarCobertura, domingoDaSemana, rotulosColunas, sugerirEscala, validarLinha, type ProblemaLinha } from '../../dominio/escala';
+import { agruparPorTurno, contarCobertura, domingoDaSemana, rotulosColunas, sugerirEscala, validarLinha, type ProblemaLinha } from '../../dominio/escala';
 import { hojeISO, paraMinutos } from '../../dominio/tempo';
 import { DIAS_SEMANA, FOLGA, type EscalaSetor, type Funcionario, type TurnoBase, type TurnoCobertura } from '../../dominio/tipos';
 import { baixarBlob, nomeSeguro } from '../../exportacao/baixar';
@@ -367,44 +367,63 @@ export default function MontadorEscala() {
                         <th scope="col" className="p-1 text-center">Situação</th>
                       </tr>
                     </thead>
-                    <tbody>
-                      {escala.linhas.map((l, li) => {
-                        const probs = (problemas.get(l.funcionarioId) ?? []).filter((p) => p.texto.startsWith(`Semana ${w + 1}:`) || (p.celula !== undefined && Math.floor(p.celula / 7) === w) || p.codigo === 'DOMINGO');
-                        const erros = probs.filter((p) => p.severidade === 'erro').length;
-                        return (
-                          <tr key={l.funcionarioId} className="border-t border-slate-200">
-                            <th scope="row" className="sticky left-0 z-10 max-w-40 truncate bg-white p-1 text-left font-medium">
-                              {nomes.get(l.funcionarioId)}
-                            </th>
-                            {l.celulas.slice(w * 7, w * 7 + 7).map((c, i) => {
-                              const col = w * 7 + i;
-                              const ti = idxTurno.get(c);
-                              const turno = ti !== undefined ? escala.turnos[ti] : undefined;
-                              const comErro = probs.some((p) => p.celula === col && p.severidade === 'erro');
-                              return (
-                                <td key={col} className="p-0.5">
-                                  <Celula
-                                    id={`${li}:${col}`}
-                                    texto={turno ? turno.nome : 'Folga'}
-                                    classe={turno ? corTurno(ti!) : 'bg-slate-200 text-slate-800 border-slate-400'}
-                                    erro={comErro}
-                                    rotulo={`${nomes.get(l.funcionarioId)}, ${colunas[col]}: ${turno ? `${turno.nome} ${turno.inicio}–${turno.fim}` : 'folga'}. Clique para alternar.`}
-                                    onClick={() => setCelula(li, col, ciclo(c))}
-                                  />
-                                </td>
-                              );
-                            })}
-                            <td className="p-1 text-center">
-                              {erros ? (
-                                <span className="font-semibold text-red-800">{erros} erro(s)</span>
-                              ) : (
-                                <span className="text-marca-800">OK</span>
+                    {agruparPorTurno(escala.linhas, escala.turnos, w).map((g) => (
+                      <tbody key={g.turno?.id ?? 'folga'}>
+                        <tr className="border-t-2 border-slate-300">
+                          <th scope="colgroup" colSpan={9} className="bg-slate-50 p-1.5 text-left text-sm">
+                            <span className="sticky left-1 flex w-fit items-center gap-2">
+                              <span
+                                aria-hidden="true"
+                                className={`h-3 w-3 shrink-0 rounded-sm border ${g.turno ? corTurno(g.indice) : 'border-slate-400 bg-slate-200'}`}
+                              />
+                              <span className="font-semibold">{g.turno ? g.turno.nome : 'Folga a semana toda'}</span>
+                              {g.turno && (
+                                <span className="font-normal text-slate-700">
+                                  {g.turno.inicio}–{g.turno.fim}
+                                </span>
                               )}
-                            </td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
+                              <span className="font-normal text-slate-700">· {g.itens.length} funcionário(s)</span>
+                            </span>
+                          </th>
+                        </tr>
+                        {g.itens.map(({ l, li }) => {
+                          const probs = (problemas.get(l.funcionarioId) ?? []).filter((p) => p.texto.startsWith(`Semana ${w + 1}:`) || (p.celula !== undefined && Math.floor(p.celula / 7) === w) || p.codigo === 'DOMINGO');
+                          const erros = probs.filter((p) => p.severidade === 'erro').length;
+                          return (
+                            <tr key={l.funcionarioId} className="border-t border-slate-200">
+                              <th scope="row" className="sticky left-0 z-10 max-w-40 truncate bg-white p-1 text-left font-medium">
+                                {nomes.get(l.funcionarioId)}
+                              </th>
+                              {l.celulas.slice(w * 7, w * 7 + 7).map((c, i) => {
+                                const col = w * 7 + i;
+                                const ti = idxTurno.get(c);
+                                const turno = ti !== undefined ? escala.turnos[ti] : undefined;
+                                const comErro = probs.some((p) => p.celula === col && p.severidade === 'erro');
+                                return (
+                                  <td key={col} className="p-0.5">
+                                    <Celula
+                                      id={`${li}:${col}`}
+                                      texto={turno ? turno.nome : 'Folga'}
+                                      classe={turno ? corTurno(ti!) : 'bg-slate-200 text-slate-800 border-slate-400'}
+                                      erro={comErro}
+                                      rotulo={`${nomes.get(l.funcionarioId)}, ${colunas[col]}: ${turno ? `${turno.nome} ${turno.inicio}–${turno.fim}` : 'folga'}. Clique para alternar.`}
+                                      onClick={() => setCelula(li, col, ciclo(c))}
+                                    />
+                                  </td>
+                                );
+                              })}
+                              <td className="p-1 text-center">
+                                {erros ? (
+                                  <span className="font-semibold text-red-800">{erros} erro(s)</span>
+                                ) : (
+                                  <span className="text-marca-800">OK</span>
+                                )}
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    ))}
                     {cobertura && (
                       <tfoot>
                         {escala.turnos.map((t, ti) => {
@@ -420,7 +439,7 @@ export default function MontadorEscala() {
                                 const col = w * 7 + i;
                                 const falta = cont[col] < ct.demanda[d];
                                 return (
-                                  <td key={d} className={`p-1 text-center text-xs font-semibold ${falta ? 'bg-red-50 text-red-800' : 'text-slate-800'}`}>
+                                  <td key={d} className={`relative p-1 text-center text-xs font-semibold ${falta ? 'bg-red-50 text-red-800' : 'text-slate-800'}`}>
                                     {cont[col]}/{ct.demanda[d]}
                                     {falta && <span className="sr-only"> faltam pessoas</span>}
                                   </td>
