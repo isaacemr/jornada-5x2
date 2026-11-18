@@ -6,10 +6,11 @@ import { funcionarioSchema, mensagensDeErro } from '../../dados/esquemas';
 import { agoraISO, gradeUniforme, novoId } from '../../dados/padroes';
 import { contextoDiagnostico, diagnosticar } from '../../dominio/diagnostico';
 import { domingoACadaSemanas } from '../../dominio/domingos';
+import { aplicarTurnoNaLinha, turnosPorSetor } from '../../dominio/escala';
 import { descreverGrade, validarGrade } from '../../dominio/jornada';
 import { formatarData, formatarDuracao, formatarNumero, lerDuracao, lerMoeda } from '../../dominio/tempo';
 import type { Escala, Funcionario, Sexo } from '../../dominio/tipos';
-import { useContexto, useFuncionarios } from '../../hooks/useDados';
+import { useContexto, useFuncionarios, useTurnosPorSetor } from '../../hooks/useDados';
 import { EditorGradeSemanal } from '../../componentes/GradeSemanal';
 import { DiagnosticoDetalhe } from '../../componentes/DiagnosticoDetalhe';
 import { Botao, BotaoLink } from '../../componentes/ui/Botao';
@@ -39,12 +40,15 @@ export default function FormFuncionario() {
   const navegar = useNavigate();
   const { empresa, prazos, etapaHoje } = useContexto();
   const todos = useFuncionarios();
+  const turnosSetores = useTurnosPorSetor();
   const [f, setF] = useState<Funcionario | null>(null);
   const [salarioTxt, setSalarioTxt] = useState('');
   const [jornadaTxt, setJornadaTxt] = useState('');
   const [erros, setErros] = useState<string[]>([]);
   const [confirmarExclusao, setConfirmarExclusao] = useState(false);
   const [naoEncontrado, setNaoEncontrado] = useState(false);
+  // Turno salvo, para saber se mudou e atualizar a escala do setor.
+  const [turnoOriginal, setTurnoOriginal] = useState<string | undefined>(undefined);
 
   useEffect(() => {
     let ativo = true;
@@ -56,6 +60,7 @@ export default function FormFuncionario() {
         return;
       }
       setF(base);
+      setTurnoOriginal(base.turnoId);
       setSalarioTxt(base.salario ? formatarNumero(base.salario) : '');
       setJornadaTxt(formatarDuracao(base.jornadaSemanalContratualMin));
     })();
@@ -65,6 +70,7 @@ export default function FormFuncionario() {
   }, [id, novo]);
 
   const setores = useMemo(() => [...new Set((todos ?? []).map((x) => x.setor).filter(Boolean))].sort(), [todos]);
+  const turnosDoSetor = (f && turnosSetores?.get(f.setor.trim())) ?? [];
 
   const diag = useMemo(() => (f ? diagnosticar(f, contextoDiagnostico(prazos, empresa?.config), 'atual') : null), [f, prazos, empresa]);
   const diagNova = useMemo(
@@ -119,7 +125,20 @@ export default function FormFuncionario() {
       window.scrollTo(0, 0);
       return;
     }
-    await db.funcionarios.put(dados);
+    await db.transaction('rw', [db.funcionarios, db.escalas, db.coberturas], async () => {
+      // O turno só vale se existir no setor (pode ter mudado de setor).
+      const turnos = turnosPorSetor(await db.escalas.toArray(), await db.coberturas.toArray()).get(dados.setor) ?? [];
+      const turnoId = turnos.some((t) => t.id === f!.turnoId) ? f!.turnoId : undefined;
+      await db.funcionarios.put({ ...dados, turnoId });
+      // Turno trocado: os dias trabalhados dessa pessoa passam para o novo turno na escala do setor.
+      if (turnoId && turnoId !== turnoOriginal) {
+        const escala = await db.escalas.get(dados.setor);
+        if (escala?.turnos.some((t) => t.id === turnoId)) {
+          const linhas = escala.linhas.map((l) => (l.funcionarioId === dados.id ? { ...l, celulas: aplicarTurnoNaLinha(l.celulas, turnoId) } : l));
+          await db.escalas.put({ ...escala, linhas, atualizadoEm: agoraISO() });
+        }
+      }
+    });
     navegar('/funcionarios');
   }
 
@@ -173,6 +192,21 @@ export default function FormFuncionario() {
                   ))}
                 </datalist>
               </div>
+              <CampoSelect
+                rotulo="Turno na escala"
+                value={turnosDoSetor.some((t) => t.id === f.turnoId) ? f.turnoId : ''}
+                onChange={(e) => set('turnoId', e.target.value || undefined)}
+                disabled={turnosDoSetor.length === 0}
+                opcoes={[
+                  { valor: '', texto: 'Automático (pelo horário de entrada)' },
+                  ...turnosDoSetor.map((t, i) => ({ valor: t.id, texto: `${i + 1}. ${t.nome} (${t.inicio}–${t.fim})` })),
+                ]}
+                dica={
+                  turnosDoSetor.length
+                    ? 'Turno em que a pessoa aparece em Opções de horário. Ao trocar, os dias trabalhados dela passam para o novo turno.'
+                    : 'O setor ainda não tem turnos. Defina-os em Opções de horário.'
+                }
+              />
               <CampoTexto
                 rotulo="Salário mensal (R$) *"
                 inputMode="decimal"

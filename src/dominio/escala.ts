@@ -5,7 +5,7 @@ import { REGRAS } from '../config/regras-ec141';
 import { alocarPessoas, dimensionarTurno, duracaoTrabalhadaTurno, gerarRevezamento, type LimitesCobertura } from './cobertura';
 import { domingoACadaSemanas as regraDaPessoa, textoRegraDomingo } from './domingos';
 import { formatarData, formatarDuracao, paraMinutos, somarDias } from './tempo';
-import { DIAS_SEMANA, FOLGA, NOME_DIA_CURTO, type CelulaEscala, type Funcionario, type Motivo, type TurnoBase, type TurnoCobertura } from './tipos';
+import { DIAS_SEMANA, FOLGA, NOME_DIA_CURTO, type CelulaEscala, type CoberturaSetor, type EscalaSetor, type Funcionario, type Motivo, type TurnoBase, type TurnoCobertura } from './tipos';
 
 export interface ProblemaLinha extends Motivo {
   /** Índice da célula (dia) relacionado, se houver. */
@@ -109,6 +109,25 @@ export function domingoDaSemana(iso: string): string {
   return somarDias(iso, -d.getDay());
 }
 
+/**
+ * Turnos de cada setor, como aparecem em Opções de horário: os da escala montada ou, se ainda não houver escala,
+ * os da calculadora de cobertura.
+ */
+export function turnosPorSetor(
+  escalas: Pick<EscalaSetor, 'setor' | 'turnos'>[],
+  coberturas: Pick<CoberturaSetor, 'setor' | 'turnos'>[],
+): Map<string, TurnoBase[]> {
+  const m = new Map<string, TurnoBase[]>();
+  for (const c of coberturas) if (c.turnos.length) m.set(c.setor, c.turnos.map(({ id, nome, inicio, fim, intervaloMin }) => ({ id, nome, inicio, fim, intervaloMin })));
+  for (const e of escalas) if (e.turnos.length) m.set(e.setor, e.turnos);
+  return m;
+}
+
+/** Troca o turno de todos os dias trabalhados da linha (as folgas ficam onde estão). */
+export function aplicarTurnoNaLinha(celulas: CelulaEscala[], turnoId: string): CelulaEscala[] {
+  return celulas.map((c) => (c === FOLGA ? c : turnoId));
+}
+
 /** Parcela de mulheres na equipe (0 a 1). */
 export function proporcaoMulheres(funcionarios: Pick<Funcionario, 'sexo'>[]): number {
   return funcionarios.length ? funcionarios.filter((f) => f.sexo === 'F').length / funcionarios.length : 0;
@@ -140,11 +159,20 @@ export function sugerirEscala(
   const pessoas = [...funcionarios].sort((a, b) => entradaReferencia(a) - entradaReferencia(b));
   const ordemTurnos = turnos.map((t, i) => ({ t, i })).sort((a, b) => paraMinutos(a.t.inicio) - paraMinutos(b.t.inicio));
 
+  // Quem tem turno definido no cadastro fica nele; os demais completam as vagas, pela ordem do horário de entrada.
+  const ids = new Set(turnos.map((t) => t.id));
+  const grupos = turnos.map((t) => pessoas.filter((f) => f.turnoId === t.id));
+  const livres = pessoas.filter((f) => !f.turnoId || !ids.has(f.turnoId));
+  for (const { i } of ordemTurnos) {
+    const vagas = Math.max(0, qtd[i] - grupos[i].length);
+    grupos[i].push(...livres.splice(0, vagas));
+  }
+  // Sobra (só acontece se faltar vaga): vai para o último turno.
+  if (livres.length) grupos[ordemTurnos[ordemTurnos.length - 1].i].push(...livres);
+
   const resultado: { funcionarioId: string; celulas: CelulaEscala[] }[] = [];
-  let cursor = 0;
   for (const { t, i } of ordemTurnos) {
-    const grupo = pessoas.slice(cursor, cursor + qtd[i]);
-    cursor += qtd[i];
+    const grupo = grupos[i].sort((a, b) => entradaReferencia(a) - entradaReferencia(b));
     if (grupo.length === 0) continue;
     const r = gerarRevezamento({
       pessoas: grupo.length,

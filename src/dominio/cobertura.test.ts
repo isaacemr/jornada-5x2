@@ -8,7 +8,7 @@ import {
   gerarRevezamento,
   limitesParaCobertura,
 } from './cobertura';
-import { agruparPorTurno, contarCobertura, domingoDaSemana, rotulosColunas, sugerirEscala, validarLinha } from './escala';
+import { agruparPorTurno, aplicarTurnoNaLinha, contarCobertura, domingoDaSemana, rotulosColunas, sugerirEscala, turnosPorSetor, validarLinha } from './escala';
 import { FOLGA, type DiaSemana, type TurnoCobertura } from './tipos';
 
 const dem = (semana: number, sab: number, dom: number): Record<DiaSemana, number> => ({ dom, seg: semana, ter: semana, qua: semana, qui: semana, sex: semana, sab });
@@ -154,6 +154,42 @@ describe('montador de escala', () => {
     expect(contarCobertura([{ celulas: [M, FOLGA] }, { celulas: [M, M] }], M, 2)).toEqual([2, 1]);
     expect(rotulosColunas('2026-12-13', 1)[0]).toBe('Dom 13/12');
     expect(domingoDaSemana('2026-12-16')).toBe('2026-12-13');
+  });
+
+  it('troca o turno dos dias trabalhados e mantém as folgas', () => {
+    expect(aplicarTurnoNaLinha([FOLGA, 'm', 'm', 't', FOLGA], 't')).toEqual([FOLGA, 't', 't', 't', FOLGA]);
+  });
+
+  it('lista os turnos de cada setor: escala montada tem prioridade sobre a calculadora', () => {
+    const manha = { id: 'm', nome: 'Manhã', inicio: '07:00', fim: '15:00', intervaloMin: 60 };
+    const tarde = { id: 't', nome: 'Tarde', inicio: '13:00', fim: '21:00', intervaloMin: 60 };
+    const m = turnosPorSetor([{ setor: 'Caixa', turnos: [tarde] }], [
+      { setor: 'Caixa', turnos: [{ ...manha, demanda: dem(1, 1, 1) }] },
+      { setor: 'Padaria', turnos: [{ ...manha, demanda: dem(1, 1, 1) }] },
+    ]);
+    expect(m.get('Caixa')).toEqual([tarde]);
+    expect(m.get('Padaria')).toEqual([manha]);
+    expect(m.has('Açougue')).toBe(false);
+  });
+
+  it('a escala sugerida respeita o turno escolhido no cadastro', () => {
+    const caixa = funcionariosExemplo().filter((f) => f.setor === 'Caixa');
+    const turnos: TurnoCobertura[] = [
+      { ...t1, demanda: dem(2, 2, 1) },
+      { id: 'tt', nome: 'Tarde', inicio: '12:36', fim: '21:00', intervaloMin: 60, demanda: dem(1, 2, 0) },
+    ];
+    const L = { ...L1, limiteDiarioMin: 600 };
+    // Ana entra mais cedo e iria para a manhã; no cadastro ela foi posta na tarde.
+    const equipe = caixa.map((f, i) => (i === 0 ? { ...f, turnoId: 'tt' } : f));
+    const linhas = sugerirEscala(equipe, turnos, 4, 3, L);
+    expect(linhas).toHaveLength(caixa.length);
+    const ana = linhas.find((l) => l.funcionarioId === caixa[0].id)!;
+    const trabalhados = ana.celulas.filter((c) => c !== FOLGA);
+    expect(trabalhados.length).toBeGreaterThan(0);
+    expect(trabalhados.every((c) => c === 'tt')).toBe(true);
+    // Turno que não existe no setor: volta ao automático.
+    const outro = sugerirEscala(caixa.map((f, i) => (i === 0 ? { ...f, turnoId: 'nao-existe' } : f)), turnos, 4, 3, L);
+    expect(outro.find((l) => l.funcionarioId === caixa[0].id)!.celulas.filter((c) => c !== FOLGA).every((c) => c === 'm')).toBe(true);
   });
 
   it('agrupa as pessoas pelo turno em que mais trabalham na semana', () => {

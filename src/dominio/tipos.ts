@@ -90,6 +90,8 @@ export interface Funcionario {
   setor: string;
   /** Não informado em cadastros antigos: usa a regra dos homens e o diagnóstico pede para completar. */
   sexo?: Sexo;
+  /** Turno fixo na escala do setor (id do turno em Opções de horário). Vazio = o montador escolhe. */
+  turnoId?: string;
   salario: number;
   jornadaSemanalContratualMin: number;
   escalaAtual: Escala;

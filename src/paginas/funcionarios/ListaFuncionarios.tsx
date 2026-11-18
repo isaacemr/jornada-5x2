@@ -4,7 +4,7 @@ import { contextoDiagnostico, diagnosticar, type Diagnostico } from '../../domin
 import { formatarData, formatarDuracao, formatarMoeda } from '../../dominio/tempo';
 import type { Funcionario, StatusDiagnostico } from '../../dominio/tipos';
 import { db } from '../../dados/db';
-import { useContexto, useFuncionarios } from '../../hooks/useDados';
+import { useContexto, useFuncionarios, useTurnosPorSetor } from '../../hooks/useDados';
 import { Botao, BotaoLink } from '../../componentes/ui/Botao';
 import { CabecalhoPagina, Carregando, Cartao, Modal, SeloStatus } from '../../componentes/ui/Basicos';
 import { CampoSelect, CampoTexto } from '../../componentes/ui/Campos';
@@ -19,6 +19,8 @@ const OPCOES_STATUS: { valor: '' | StatusDiagnostico; texto: string }[] = [
 
 export default function ListaFuncionarios() {
   const funcionarios = useFuncionarios();
+  const turnosSetores = useTurnosPorSetor();
+  const nomeTurno = (f: Funcionario) => turnosSetores?.get(f.setor)?.find((t) => t.id === f.turnoId)?.nome;
   const { empresa, prazos } = useContexto();
   const [params, setParams] = useSearchParams();
   const [busca, setBusca] = useState('');
@@ -158,7 +160,7 @@ export default function ListaFuncionarios() {
               </thead>
               <tbody>
                 {filtradas.map(({ f, d }) => (
-                  <Linha key={f.id} f={f} d={d} selecionado={selecionados.has(f.id)} alternar={alternar} pedirExclusao={setAExcluir} />
+                  <Linha key={f.id} f={f} d={d} turno={nomeTurno(f)} selecionado={selecionados.has(f.id)} alternar={alternar} pedirExclusao={setAExcluir} />
                 ))}
               </tbody>
             </table>
@@ -181,7 +183,8 @@ export default function ListaFuncionarios() {
                       {f.nome}
                     </Link>
                     <p className="text-sm text-slate-700">
-                      {f.setor} · {f.cargo} · {f.escalaAtual} · {formatarDuracao(d.semanalConsideradoMin)}/sem.
+                      {f.setor} · {f.cargo} · {f.escalaAtual}
+                      {nomeTurno(f) && ` · turno ${nomeTurno(f)}`} · {formatarDuracao(d.semanalConsideradoMin)}/sem.
                     </p>
                     <div className="mt-2 flex flex-wrap items-center gap-2">
                       <SeloStatus status={d.status} />
@@ -236,12 +239,15 @@ function AcoesFuncionario({
 function Linha({
   f,
   d,
+  turno,
   selecionado,
   alternar,
   pedirExclusao,
 }: {
   f: Funcionario;
   d: Diagnostico;
+  /** Turno definido no cadastro (Opções de horário). */
+  turno?: string;
   selecionado: boolean;
   alternar: (id: string) => void;
   pedirExclusao: (f: Funcionario) => void;
@@ -269,6 +275,7 @@ function Linha({
       </td>
       <td>
         {f.escalaAtual}
+        {turno && <span className="block text-xs text-slate-600">Turno: {turno}</span>}
         {f.gradeNova && <span className="block text-xs text-marca-800">nova grade definida</span>}
       </td>
       <td className="text-right tabular-nums">{formatarDuracao(d.semanalConsideradoMin)}</td>

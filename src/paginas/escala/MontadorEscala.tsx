@@ -36,18 +36,20 @@ function turnosDasGrades(equipe: Funcionario[]): TurnoBase[] {
   return lista.map((t, i) => ({ ...t, nome: lista.length === 1 ? 'Turno' : ['Manhã', 'Tarde', 'Noite', 'Extra'][i] ?? `Turno ${i + 1}` }));
 }
 
-/** Monta as linhas a partir das grades (para visualizar a escala atual/nova). */
+/** Monta as linhas a partir das grades (para visualizar a escala atual/nova). Respeita o turno definido no cadastro. */
 function linhasDasGrades(equipe: Funcionario[], turnos: TurnoBase[], semanas: number) {
   return equipe.map((f) => {
     const g = f.gradeNova ?? f.gradeAtual;
+    const fixo = turnos.find((t) => t.id === f.turnoId);
     const celulas: string[] = [];
     for (let w = 0; w < semanas; w++)
       for (const d of DIAS_SEMANA) {
         const dia = g[d];
-        // Turno com início mais próximo da entrada da pessoa.
-        const t = dia.trabalha
-          ? [...turnos].sort((a, b) => Math.abs(paraMinutos(a.inicio) - paraMinutos(dia.entrada)) - Math.abs(paraMinutos(b.inicio) - paraMinutos(dia.entrada)))[0]
-          : undefined;
+        // Turno do cadastro ou, sem ele, o de início mais próximo da entrada da pessoa.
+        const t = !dia.trabalha
+          ? undefined
+          : (fixo ??
+            [...turnos].sort((a, b) => Math.abs(paraMinutos(a.inicio) - paraMinutos(dia.entrada)) - Math.abs(paraMinutos(b.inicio) - paraMinutos(dia.entrada)))[0]);
         celulas.push(t ? t.id : FOLGA);
       }
     return { funcionarioId: f.id, celulas };
@@ -112,7 +114,8 @@ export default function MontadorEscala() {
     // Sincroniza com a equipe atual do setor
     const ids = new Set(equipe.map((f) => f.id));
     const linhas = e.linhas.filter((l) => ids.has(l.funcionarioId));
-    for (const f of equipe) if (!linhas.some((l) => l.funcionarioId === f.id)) linhas.push({ funcionarioId: f.id, celulas: Array(e.semanas * 7).fill(FOLGA) });
+    // Quem entrou no setor depois: começa pelos próprios horários (e pelo turno do cadastro, se houver).
+    for (const f of equipe) if (!linhas.some((l) => l.funcionarioId === f.id)) linhas.push(...linhasDasGrades([f], e.turnos, e.semanas));
     setEscala({ ...e, linhas });
     setSemana(0);
   }, [escalas, coberturas, funcionarios, setor, escala?.setor, equipe, cobertura, N, prazos]);

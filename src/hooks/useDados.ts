@@ -1,9 +1,10 @@
 import { useLiveQuery } from 'dexie-react-hooks';
 import { useEffect, useMemo, useState } from 'react';
 import { db } from '../dados/db';
+import { turnosPorSetor } from '../dominio/escala';
 import { calcularPrazos, etapaVigente, limitesDaEtapa, perfilDaEmpresa } from '../dominio/etapas';
 import { hojeISO } from '../dominio/tempo';
-import type { Empresa, Funcionario } from '../dominio/tipos';
+import type { Empresa, Funcionario, TurnoBase } from '../dominio/tipos';
 
 const CARREGANDO = 'carregando' as const;
 
@@ -15,6 +16,11 @@ export function useEmpresa(): Empresa | null | undefined {
 
 export function useFuncionarios(): Funcionario[] | undefined {
   return useLiveQuery(() => db.funcionarios.orderBy('nome').toArray(), []);
+}
+
+/** Turnos de cada setor em Opções de horário (escala montada ou calculadora de cobertura). */
+export function useTurnosPorSetor(): Map<string, TurnoBase[]> | undefined {
+  return useLiveQuery(async () => turnosPorSetor(await db.escalas.toArray(), await db.coberturas.toArray()), []);
 }
 
 
